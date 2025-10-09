@@ -15,6 +15,16 @@ export default function DashboardPage() {
   const { language, setLanguage, t, availableLanguages } = useLanguage();
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
   const router = useRouter();
+  
+  // Subscription state (for users) - moved before early returns
+  const [messes, setMesses] = useState<any[]>([]);
+  const [selectedMess, setSelectedMess] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<'double_time' | 'single_time' | 'half_month' | 'full_month'>('double_time');
+  const [joinDate, setJoinDate] = useState(new Date().toISOString().split('T')[0]);
+  const [processing, setProcessing] = useState(false);
+  
+  const userRole = user?.user_metadata?.role || 'user';
+  const planPrices: Record<string, number> = { double_time: 2600, single_time: 1500, half_month: 1300, full_month: 2600 };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -66,15 +76,6 @@ export default function DashboardPage() {
   if (!user) {
     return null;
   }
-
-  const userRole = user?.user_metadata?.role || 'user';
-  // Subscription state (for users)
-  const [messes, setMesses] = useState<any[]>([]);
-  const [selectedMess, setSelectedMess] = useState<string | null>(null);
-  const [selectedPlan, setSelectedPlan] = useState<'double_time' | 'single_time' | 'half_month' | 'full_month'>('double_time');
-  const [joinDate, setJoinDate] = useState(new Date().toISOString().split('T')[0]);
-  const [processing, setProcessing] = useState(false);
-  const planPrices: Record<string, number> = { double_time: 2600, single_time: 1500, half_month: 1300, full_month: 2600 };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
