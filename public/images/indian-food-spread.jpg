@@ -1,0 +1,19 @@
+# Background Image Updated
+
+**Status**: ✅ **COMPLETED** - The actual Indian food spread image has been added!
+
+## Current Setup:
+- **Active Image**: `download.jpeg` 
+- **Location**: `/public/images/download.jpeg`
+- **Usage**: Homepage hero section background
+
+## Implementation Details:
+- The image is now being used as the background for the hero section
+- Dark overlay (50% opacity) applied for text readability
+- Responsive design ensures the image looks great on all devices
+- CSS properties: `background-size: cover`, `background-position: center`
+
+## Visual Result:
+The landing page now displays the beautiful Indian food spread image as the background, creating an authentic and appetizing first impression for the mess management platform.
+
+You can view the updated design at: http://localhost:3000

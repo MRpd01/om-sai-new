@@ -1,0 +1,133 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "login": "Login",
+    "logout": "Logout",
+    "signup": "Sign Up",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone Number",
+    "mobile": "Mobile Number",
+    "address": "Address",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "paid": "Paid",
+    "due": "Due",
+    "pending": "Pending"
+  },
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "home": {
+    "hero": {
+      "title": "Transform Your",
+      "subtitle": "Mess Management",
+      "description": "Streamline payments, manage memberships, and connect with your community. The complete solution for modern mess management with multi-language support.",
+      "joinMember": "Join as Member",
+
+      "adminAccess": "Admin Access",
+      "adminDashboard": "Admin Dashboard"
+    },
+    "features": {
+      "title": "Everything You Need",
+      "subtitle": "From payments to notifications, we've got your mess management covered",
+      "smartPayments": {
+        "title": "Smart Payments",
+        "description": "Integrated Razorpay payments with automatic registration and subscription management"
+      },
+      "roleManagement": {
+        "title": "Role Management",
+        "description": "Complete role-based system for Members and Admins with proper permissions"
+      },
+      "flexiblePlans": {
+        "title": "Flexible Plans",
+        "description": "Full Month, Half Month, Single Time, or Double Time meal plans to suit every need"
+      },
+      "multiLanguage": {
+        "title": "Multi-Language",
+        "description": "Support for English, Hindi, and Marathi to serve diverse communities"
+      },
+      "smartNotifications": {
+        "title": "Smart Notifications",
+        "description": "WhatsApp and Email alerts for payments, renewals, and important updates"
+      },
+      "easyManagement": {
+        "title": "Easy Management",
+        "description": "Intuitive dashboard for mess owners to manage members, pricing, and operations"
+      }
+    },
+    "cta": {
+      "title": "Ready to Transform Your Mess?",
+      "subtitle": "Join thousands of satisfied users and mess owners who've simplified their operations",
+      "startTrial": "Start Free Trial",
+      "watchDemo": "Watch Demo"
+    }
+  },
+  "auth": {
+    "loginTitle": "Login to MessMate",
+    "signupTitle": "Join MessMate",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Enter your password",
+    "namePlaceholder": "Enter your full name",
+    "mobilePlaceholder": "Enter your mobile number",
+    "parentMobilePlaceholder": "Parent's mobile number",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signupLink": "Sign up here",
+    "loginLink": "Login here"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "overview": "Overview",
+    "members": "Manage Members",
+    "payments": "Payments",
+    "notifications": "Notifications",
+    "settings": "Settings"
+  },
+  "subscription": {
+    "types": {
+      "fullMonth": "Full Month",
+      "halfMonth": "Half Month",
+      "singleMorning": "Single Time (Morning)",
+      "singleEvening": "Single Time (Evening)",
+      "doubleTime": "Double Time (Morning + Evening)"
+    },
+    "status": {
+      "success": "Active",
+      "due": "Payment Due",
+      "pending": "Payment Pending",
+      "failed": "Payment Failed"
+    },
+    "joiningDate": "Joining Date",
+    "expiryDate": "Expiry Date",
+    "renewSubscription": "Renew Subscription",
+    "payNow": "Pay Now"
+  },
+  "mess": {
+    "menu": "Mess Menu",
+    "enquiry": "Submit Enquiry",
+    "enquiryPlaceholder": "Write your message here...",
+    "submitEnquiry": "Submit Enquiry",
+    "messInfo": "Mess Information",
+    "messOwner": "Mess Owner",
+    "contactInfo": "Contact Information"
+  }
+}
