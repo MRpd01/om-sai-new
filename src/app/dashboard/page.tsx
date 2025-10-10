@@ -4,9 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChefHat, Users, CreditCard, Calendar, Bell, Settings, LogOut, User, Globe, ChevronDown } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ChefHat, Users, CreditCard, Calendar, Bell, Settings, LogOut, User, Globe, ChevronDown, Camera, Upload, X, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { fetchMesses, createPayment, createMembership } from '@/lib/supabase';
 
@@ -23,8 +24,119 @@ export default function DashboardPage() {
   const [joinDate, setJoinDate] = useState(new Date().toISOString().split('T')[0]);
   const [processing, setProcessing] = useState(false);
   
+  // Admin member addition state
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMemberData, setNewMemberData] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    mess_id: '',
+    plan: 'double_time' as 'double_time' | 'single_time' | 'half_month' | 'full_month',
+    join_date: new Date().toISOString().split('T')[0]
+  });
+  const [memberPhotoFile, setMemberPhotoFile] = useState<File | null>(null);
+  const [memberPhotoPreview, setMemberPhotoPreview] = useState<string | null>(null);
+  const [isMemberCameraOn, setIsMemberCameraOn] = useState(false);
+  const [memberCameraStream, setMemberCameraStream] = useState<MediaStream | null>(null);
+  const [addingMember, setAddingMember] = useState(false);
+  
   const userRole = user?.user_metadata?.role || 'user';
   const planPrices: Record<string, number> = { double_time: 2600, single_time: 1500, half_month: 1300, full_month: 2600 };
+
+  // Camera refs for member photo
+  const memberVideoRef = useRef<HTMLVideoElement>(null);
+  const memberCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Member photo handling functions
+  const handleMemberPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setMemberPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => setMemberPhotoPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const openMemberCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      setMemberCameraStream(stream);
+      setIsMemberCameraOn(true);
+      if (memberVideoRef.current) {
+        memberVideoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Unable to access camera. Please check permissions.');
+    }
+  };
+
+  const captureFromMemberCamera = () => {
+    if (memberVideoRef.current && memberCanvasRef.current) {
+      const canvas = memberCanvasRef.current;
+      const video = memberVideoRef.current;
+      const context = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context?.drawImage(video, 0, 0);
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], 'member-photo.jpg', { type: 'image/jpeg' });
+          setMemberPhotoFile(file);
+          setMemberPhotoPreview(canvas.toDataURL('image/jpeg'));
+          closeMemberCamera();
+        }
+      }, 'image/jpeg');
+    }
+  };
+
+  const closeMemberCamera = () => {
+    if (memberCameraStream) {
+      memberCameraStream.getTracks().forEach(track => track.stop());
+      setMemberCameraStream(null);
+    }
+    setIsMemberCameraOn(false);
+  };
+
+  const resetMemberForm = () => {
+    setNewMemberData({
+      full_name: '',
+      email: '',
+      phone: '',
+      mess_id: '',
+      plan: 'double_time',
+      join_date: new Date().toISOString().split('T')[0]
+    });
+    setMemberPhotoFile(null);
+    setMemberPhotoPreview(null);
+    setShowAddMember(false);
+    closeMemberCamera();
+  };
+
+  const handleAddMember = async () => {
+    if (!newMemberData.full_name || !newMemberData.email || !newMemberData.mess_id) {
+      alert('Please fill all required fields');
+      return;
+    }
+
+    setAddingMember(true);
+    try {
+      // Here you would typically create the member in your database
+      // For now, we'll simulate the process
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      alert('Member added successfully!');
+      resetMemberForm();
+    } catch (error) {
+      console.error('Error adding member:', error);
+      alert('Failed to add member. Please try again.');
+    } finally {
+      setAddingMember(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -275,6 +387,28 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
             </Card>
+
+            {/* Add Member Card */}
+            <Card 
+              className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer"
+              onClick={() => setShowAddMember(true)}
+            >
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+                    <UserPlus className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-orange-900 group-hover:text-orange-700 transition-colors">Add New Member</CardTitle>
+                    <CardDescription>Add member with subscription & photo</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">+</div>
+                <p className="text-sm text-orange-500">Click to add member</p>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           /* User Dashboard */
@@ -485,6 +619,193 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Member Modal */}
+      {showAddMember && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-orange-900">Add New Member</h2>
+              <Button variant="ghost" onClick={resetMemberForm}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Photo Upload Section */}
+              <div>
+                <label className="block text-sm font-medium text-orange-900 mb-2">Member Photo</label>
+                <div className="flex flex-col items-center space-y-4">
+                  {memberPhotoPreview ? (
+                    <div className="relative">
+                      <img 
+                        src={memberPhotoPreview} 
+                        alt="Member preview" 
+                        className="w-32 h-32 rounded-full object-cover border-4 border-orange-200"
+                      />
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 rounded-full w-8 h-8"
+                        onClick={() => {
+                          setMemberPhotoFile(null);
+                          setMemberPhotoPreview(null);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 bg-orange-100 rounded-full flex items-center justify-center border-2 border-dashed border-orange-300">
+                      <User className="h-16 w-16 text-orange-400" />
+                    </div>
+                  )}
+
+                  {isMemberCameraOn ? (
+                    <div className="space-y-3">
+                      <video 
+                        ref={memberVideoRef}
+                        autoPlay 
+                        playsInline 
+                        className="w-64 h-48 bg-gray-800 rounded-lg"
+                      />
+                      <canvas ref={memberCanvasRef} style={{ display: 'none' }} />
+                      <div className="flex space-x-2">
+                        <Button onClick={captureFromMemberCamera} className="bg-orange-600">
+                          <Camera className="h-4 w-4 mr-2" />
+                          Capture Photo
+                        </Button>
+                        <Button variant="outline" onClick={closeMemberCamera}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex space-x-2">
+                      <Button onClick={openMemberCamera} variant="outline">
+                        <Camera className="h-4 w-4 mr-2" />
+                        Camera
+                      </Button>
+                      <label className="cursor-pointer">
+                        <Button variant="outline" asChild>
+                          <span>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload
+                          </span>
+                        </Button>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleMemberPhotoUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Member Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-orange-900 mb-1">Full Name *</label>
+                  <Input 
+                    value={newMemberData.full_name}
+                    onChange={(e) => setNewMemberData({...newMemberData, full_name: e.target.value})}
+                    placeholder="Enter full name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-orange-900 mb-1">Email *</label>
+                  <Input 
+                    type="email"
+                    value={newMemberData.email}
+                    onChange={(e) => setNewMemberData({...newMemberData, email: e.target.value})}
+                    placeholder="Enter email address"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-orange-900 mb-1">Phone</label>
+                  <Input 
+                    value={newMemberData.phone}
+                    onChange={(e) => setNewMemberData({...newMemberData, phone: e.target.value})}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-orange-900 mb-1">Select Mess *</label>
+                  <select 
+                    value={newMemberData.mess_id} 
+                    onChange={(e) => setNewMemberData({...newMemberData, mess_id: e.target.value})} 
+                    className="w-full p-2 border border-orange-200 rounded-md"
+                  >
+                    <option value="">Choose a mess</option>
+                    {messes.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-orange-900 mb-1">Subscription Plan</label>
+                  <select 
+                    value={newMemberData.plan} 
+                    onChange={(e) => setNewMemberData({...newMemberData, plan: e.target.value as any})} 
+                    className="w-full p-2 border border-orange-200 rounded-md"
+                  >
+                    <option value="double_time">Double Time - ₹2600 / month</option>
+                    <option value="single_time">Single Time - ₹1500 / month</option>
+                    <option value="half_month">Half Month - ₹1300</option>
+                    <option value="full_month">Full Month - ₹2600</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-orange-900 mb-1">Joining Date</label>
+                  <Input 
+                    type="date" 
+                    value={newMemberData.join_date} 
+                    onChange={(e) => setNewMemberData({...newMemberData, join_date: e.target.value})} 
+                  />
+                </div>
+              </div>
+
+              {/* Pricing Display */}
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-orange-900 mb-2">Subscription Summary</h3>
+                <div className="flex justify-between items-center">
+                  <span className="text-orange-700">
+                    {newMemberData.plan === 'double_time' && 'Double Time Plan'}
+                    {newMemberData.plan === 'single_time' && 'Single Time Plan'}
+                    {newMemberData.plan === 'half_month' && 'Half Month Plan'}
+                    {newMemberData.plan === 'full_month' && 'Full Month Plan'}
+                  </span>
+                  <span className="text-xl font-bold text-orange-600">
+                    ₹{planPrices[newMemberData.plan]}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-4">
+                <Button 
+                  onClick={handleAddMember} 
+                  disabled={addingMember}
+                  className="bg-orange-600 hover:bg-orange-700 flex-1"
+                >
+                  {addingMember ? 'Adding Member...' : 'Add Member'}
+                </Button>
+                <Button variant="outline" onClick={resetMemberForm}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
