@@ -1,0 +1,5 @@
+FORCE VERCEL DEPLOYMENT - COMMIT SIGNATURE CHANGE
+This file exists solely to force a new commit signature.
+Our React hooks are fixed in the latest code.
+ESLint is disabled in next.config.ts.
+Vercel should deploy this commit instead of 0d798e6.
