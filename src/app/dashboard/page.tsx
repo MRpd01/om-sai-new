@@ -194,17 +194,17 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-orange-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 gap-4">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-orange-600 rounded-lg">
                 <ChefHat className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-orange-900">MessMate {t('nav.dashboard')}</h1>
-                <p className="text-sm text-orange-600 capitalize">{userRole === 'admin' ? t('mess.messOwner') : t('dashboard.members')} Portal</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-orange-900">MessMate {t('nav.dashboard')}</h1>
+                <p className="text-xs sm:text-sm text-orange-600 capitalize">{userRole === 'admin' ? t('mess.messOwner') : t('dashboard.members')} Portal</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
               {userRole === 'admin' && (
                 <div className="relative">
                   <Button 
@@ -214,11 +214,12 @@ export default function DashboardPage() {
                       e.stopPropagation();
                       setIsLanguageDropdownOpen(!isLanguageDropdownOpen);
                     }}
-                    className="flex items-center space-x-2"
+                    className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-start"
                   >
                     <Globe className="h-4 w-4" />
-                    <span>{availableLanguages.find(lang => lang.code === language)?.flag}</span>
-                    <span>{availableLanguages.find(lang => lang.code === language)?.name}</span>
+                    <span className="hidden sm:inline">{availableLanguages.find(lang => lang.code === language)?.flag}</span>
+                    <span className="hidden sm:inline">{availableLanguages.find(lang => lang.code === language)?.name}</span>
+                    <span className="sm:hidden">{availableLanguages.find(lang => lang.code === language)?.flag}</span>
                     <ChevronDown className="h-3 w-3" />
                   </Button>
                   
@@ -241,18 +242,22 @@ export default function DashboardPage() {
                   )}
                 </div>
               )}
-              <Button variant="ghost" size="sm">
-                <Bell className="h-4 w-4 mr-2" />
-                {t('dashboard.notifications')}
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                {t('dashboard.settings')}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                {t('common.logout')}
-              </Button>
+              
+              {/* Action Buttons - Stack on mobile, row on desktop */}
+              <div className="flex flex-row gap-1 sm:gap-2">
+                <Button variant="ghost" size="sm" className="flex-1 sm:flex-none px-2 sm:px-3">
+                  <Bell className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline ml-1">{t('dashboard.notifications')}</span>
+                </Button>
+                <Button variant="ghost" size="sm" className="flex-1 sm:flex-none px-2 sm:px-3">
+                  <Settings className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline ml-1">{t('dashboard.settings')}</span>
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleSignOut} className="flex-1 sm:flex-none px-2 sm:px-3">
+                  <LogOut className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline ml-1">{t('common.logout')}</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -622,12 +627,12 @@ export default function DashboardPage() {
 
       {/* Add Member Modal */}
       {showAddMember && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-xs sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-orange-900">Add New Member</h2>
-              <Button variant="ghost" onClick={resetMemberForm}>
-                <X className="h-5 w-5" />
+              <h2 className="text-lg sm:text-2xl font-bold text-orange-900">Add New Member</h2>
+              <Button variant="ghost" onClick={resetMemberForm} size="sm">
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
 
@@ -635,64 +640,62 @@ export default function DashboardPage() {
               {/* Photo Upload Section */}
               <div>
                 <label className="block text-sm font-medium text-orange-900 mb-2">Member Photo</label>
-                <div className="flex flex-col items-center space-y-4">
+                <div className="flex flex-col items-center space-y-3 sm:space-y-4">
                   {memberPhotoPreview ? (
                     <div className="relative">
                       <img 
                         src={memberPhotoPreview} 
                         alt="Member preview" 
-                        className="w-32 h-32 rounded-full object-cover border-4 border-orange-200"
+                        className="w-20 h-20 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-orange-200"
                       />
                       <Button
                         size="sm"
                         variant="destructive"
-                        className="absolute -top-2 -right-2 rounded-full w-8 h-8"
+                        className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 rounded-full w-6 h-6 sm:w-8 sm:h-8 p-0"
                         onClick={() => {
                           setMemberPhotoFile(null);
                           setMemberPhotoPreview(null);
                         }}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </div>
                   ) : (
-                    <div className="w-32 h-32 bg-orange-100 rounded-full flex items-center justify-center border-2 border-dashed border-orange-300">
-                      <User className="h-16 w-16 text-orange-400" />
+                    <div className="w-20 h-20 sm:w-32 sm:h-32 bg-orange-100 rounded-full flex items-center justify-center border-2 border-dashed border-orange-300">
+                      <User className="h-8 w-8 sm:h-16 sm:w-16 text-orange-400" />
                     </div>
                   )}
 
                   {isMemberCameraOn ? (
-                    <div className="space-y-3">
+                    <div className="space-y-3 w-full">
                       <video 
                         ref={memberVideoRef}
                         autoPlay 
                         playsInline 
-                        className="w-64 h-48 bg-gray-800 rounded-lg"
+                        className="w-full max-w-xs sm:w-64 h-36 sm:h-48 bg-gray-800 rounded-lg mx-auto"
                       />
                       <canvas ref={memberCanvasRef} style={{ display: 'none' }} />
-                      <div className="flex space-x-2">
-                        <Button onClick={captureFromMemberCamera} className="bg-orange-600">
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                        <Button onClick={captureFromMemberCamera} className="bg-orange-600 w-full sm:w-auto">
                           <Camera className="h-4 w-4 mr-2" />
                           Capture Photo
                         </Button>
-                        <Button variant="outline" onClick={closeMemberCamera}>
+                        <Button variant="outline" onClick={closeMemberCamera} className="w-full sm:w-auto">
                           Cancel
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex space-x-2">
-                      <Button onClick={openMemberCamera} variant="outline">
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                      <Button onClick={openMemberCamera} variant="outline" className="w-full sm:w-auto">
                         <Camera className="h-4 w-4 mr-2" />
                         Camera
                       </Button>
-                      <label className="cursor-pointer">
-                        <Button variant="outline" asChild>
-                          <span>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload
-                          </span>
-                        </Button>
+                      <label className="cursor-pointer w-full sm:w-auto">
+                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full">
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload
+                        </div>
                         <input
                           type="file"
                           accept="image/*"
@@ -706,13 +709,14 @@ export default function DashboardPage() {
               </div>
 
               {/* Member Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-orange-900 mb-1">Full Name *</label>
                   <Input 
                     value={newMemberData.full_name}
                     onChange={(e) => setNewMemberData({...newMemberData, full_name: e.target.value})}
                     placeholder="Enter full name"
+                    className="text-sm"
                   />
                 </div>
                 
@@ -723,6 +727,7 @@ export default function DashboardPage() {
                     value={newMemberData.email}
                     onChange={(e) => setNewMemberData({...newMemberData, email: e.target.value})}
                     placeholder="Enter email address"
+                    className="text-sm"
                   />
                 </div>
 
@@ -732,6 +737,7 @@ export default function DashboardPage() {
                     value={newMemberData.phone}
                     onChange={(e) => setNewMemberData({...newMemberData, phone: e.target.value})}
                     placeholder="Enter phone number"
+                    className="text-sm"
                   />
                 </div>
 
@@ -740,7 +746,7 @@ export default function DashboardPage() {
                   <select 
                     value={newMemberData.mess_id} 
                     onChange={(e) => setNewMemberData({...newMemberData, mess_id: e.target.value})} 
-                    className="w-full p-2 border border-orange-200 rounded-md"
+                    className="w-full p-2 text-sm border border-orange-200 rounded-md"
                   >
                     <option value="">Choose a mess</option>
                     {messes.map(m => (
@@ -754,7 +760,7 @@ export default function DashboardPage() {
                   <select 
                     value={newMemberData.plan} 
                     onChange={(e) => setNewMemberData({...newMemberData, plan: e.target.value as any})} 
-                    className="w-full p-2 border border-orange-200 rounded-md"
+                    className="w-full p-2 text-sm border border-orange-200 rounded-md"
                   >
                     <option value="double_time">Double Time - ₹2600 / month</option>
                     <option value="single_time">Single Time - ₹1500 / month</option>
@@ -769,6 +775,7 @@ export default function DashboardPage() {
                     type="date" 
                     value={newMemberData.join_date} 
                     onChange={(e) => setNewMemberData({...newMemberData, join_date: e.target.value})} 
+                    className="text-sm"
                   />
                 </div>
               </div>
@@ -790,15 +797,15 @@ export default function DashboardPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
                 <Button 
                   onClick={handleAddMember} 
                   disabled={addingMember}
-                  className="bg-orange-600 hover:bg-orange-700 flex-1"
+                  className="bg-orange-600 hover:bg-orange-700 w-full sm:flex-1"
                 >
                   {addingMember ? 'Adding Member...' : 'Add Member'}
                 </Button>
-                <Button variant="outline" onClick={resetMemberForm}>
+                <Button variant="outline" onClick={resetMemberForm} className="w-full sm:w-auto">
                   Cancel
                 </Button>
               </div>

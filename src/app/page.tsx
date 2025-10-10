@@ -28,7 +28,7 @@ export default function Home() {
     getStarted: string;
   }> = {
     en: {
-      title: "Welcome to MessMate",
+      title: "Welcome to OM Sai Bhojnalay",
       subtitle: "Your Complete Mess Management Solution",
       description: "Streamline your mess operations with digital payments, member management, menu planning, and multi-language support. Perfect for mess owners and members alike.",
       signIn: "Sign In",
@@ -43,7 +43,7 @@ export default function Home() {
       getStarted: "Get Started Today"
     },
     mr: {
-      title: "MessMate मध्ये स्वागत आहे",
+      title: "ॐ साई भोजनालयात स्वागत आहे",
       subtitle: "तुमचा संपूर्ण मेस व्यवस्थापन समाधान",
       description: "डिजिटल पेमेंट, सदस्य व्यवस्थापन, मेनू नियोजन आणि बहुभाषिक समर्थनासह तुमच्या मेसचे कामकाज सुव्यवस्थित करा. मेस मालक आणि सदस्यांसाठी परिपूर्ण.",
       signIn: "साइन इन",
@@ -71,21 +71,13 @@ export default function Home() {
   }, []);
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 relative"
-      style={{
-        backgroundImage: "url('/images/HomeFoodImg.jpeg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      {/* Background overlay for better text readability */}
-      <div className="absolute inset-0 bg-white bg-opacity-80"></div>
+    <div className="min-h-screen hero-bg relative">
+      {/* Background overlay for better text readability - reduced opacity */}
+      <div className="absolute inset-0 bg-gradient-to-br from-orange-50/40 via-amber-50/40 to-yellow-50/40"></div>
       
       {/* Content wrapper */}
       <div className="relative z-10">
-        <header className="bg-white/90 backdrop-blur-sm shadow-sm border-b border-orange-200">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-md shadow-sm border-b border-orange-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             {/* Logo */}
@@ -93,7 +85,7 @@ export default function Home() {
               <div className="p-2 bg-orange-600 rounded-lg">
                 <ChefHat className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-orange-900">MessMate</h1>
+              <h1 className="text-2xl font-bold text-orange-900">ॐ साई भोजनालय</h1>
             </div>
 
             {/* Navigation */}
@@ -276,7 +268,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <main className="flex-1">
+      <main className="flex-1 pt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
             <div className="flex justify-center mb-8">
@@ -331,7 +323,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4">
-                {language === 'en' ? 'Why Choose MessMate?' : 'MessMate का निवडा?'}
+                {language === 'en' ? 'Why Choose OM Sai Bhojnalay?' : 'ॐ साई भोजनालयाची निवड का करावी?'}
               </h2>
               <p className="text-xl text-orange-700 max-w-2xl mx-auto">
                 {language === 'en' 
@@ -395,19 +387,19 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-8">
-                {language === 'en' ? 'About MessMate' : 'MessMate बद्दल'}
+                {language === 'en' ? 'About OM Sai Bhojnalay' : 'ॐ साई भोजनालयाबद्दल'}
               </h2>
               <div className="max-w-4xl mx-auto text-lg text-orange-700 leading-relaxed">
                 <p className="mb-6">
                   {language === 'en' 
-                    ? 'MessMate is designed to revolutionize mess management by providing a comprehensive digital solution for both mess owners and members. Our platform streamlines operations, reduces paperwork, and enhances communication.'
-                    : 'MessMate मेस मालक आणि सदस्य दोघांसाठी एक व्यापक डिजिटल समाधान प्रदान करून मेस व्यवस्थापनात क्रांती घडवून आणण्यासाठी डिझाइन केले गेले आहे. आमचे प्लॅटफॉर्म ऑपरेशन्स सुव्यवस्थित करते, कागदी कामे कमी करते आणि संवाद वाढवते.'
+                    ? 'OM Sai Bhojnalay is designed to revolutionize mess management by providing a comprehensive digital solution for both mess owners and members. Our platform streamlines operations, reduces paperwork, and enhances communication.'
+                    : 'ॐ साई भोजनालय मेस मालक आणि सदस्य दोघांसाठी एक व्यापक डिजिटल समाधान प्रदान करून मेस व्यवस्थापनात क्रांती घडवून आणण्यासाठी डिझाइन केले गेले आहे. आमचे प्लॅटफॉर्म ऑपरेशन्स सुव्यवस्थित करते, कागदी कामे कमी करते आणि संवाद वाढवते.'
                   }
                 </p>
                 <p>
                   {language === 'en' 
-                    ? 'Whether you\'re a mess owner looking to digitize your operations or a member seeking convenient access to mess services, MessMate provides the tools you need for a seamless experience.'
-                    : 'तुम्ही तुमच्या ऑपरेशन्सचे डिजिटायझेशन करू इच्छिणारे मेस मालक असाल किंवा मेस सेवांमध्ये सोयीस्कर प्रवेश शोधणारे सदस्य असाल, MessMate तुम्हाला अखंड अनुभवासाठी आवश्यक साधने प्रदान करते.'
+                    ? 'Whether you\'re a mess owner looking to digitize your operations or a member seeking convenient access to mess services, OM Sai Bhojnalay provides the tools you need for a seamless experience.'
+                    : 'तुम्ही तुमच्या ऑपरेशन्सचे डिजिटायझेशन करू इच्छिणारे मेस मालक असाल किंवा मेस सेवांमध्ये सोयीस्कर प्रवेश शोधणारे सदस्य असाल, ॐ साई भोजनालय तुम्हाला अखंड अनुभवासाठी आवश्यक साधने प्रदान करते.'
                   }
                 </p>
               </div>
@@ -496,7 +488,7 @@ export default function Home() {
               <div className="p-2 bg-orange-600 rounded-lg">
                 <ChefHat className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">MessMate</span>
+              <span className="text-xl font-bold text-white">ॐ साई भोजनालय</span>
             </div>
             <p className="text-orange-200 mb-4">
               {language === 'en' 
@@ -505,7 +497,7 @@ export default function Home() {
               }
             </p>
             <p className="text-orange-300 text-sm">
-              © 2025 MessMate. {language === 'en' ? 'All rights reserved.' : 'सर्व हक्क राखीव.'}
+              © 2025 ॐ साई भोजनालय. {language === 'en' ? 'All rights reserved.' : 'सर्व हक्क राखीव.'}
             </p>
           </div>
         </div>

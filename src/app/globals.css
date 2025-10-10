@@ -93,12 +93,11 @@ body {
 
 /* Background image enhancements */
 .hero-bg {
+  background-image: url('/images/HomeFoodImg.jpeg'), linear-gradient(135deg, #fed7aa 0%, #fb923c 25%, #ea580c 50%, #dc2626 75%, #991b1b 100%);
   background-attachment: fixed;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  /* Fallback gradient if image is not available */
-  background-image: linear-gradient(135deg, #fed7aa 0%, #fb923c 25%, #ea580c 50%, #dc2626 75%, #991b1b 100%);
 }
 
 @media (max-width: 768px) {
