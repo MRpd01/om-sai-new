@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { ChefHat, Mail, Lock, Eye, EyeOff, ArrowLeft, User, Phone, Users, Buildi
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function SignupPage() {
+function SignupContent() {
   const searchParams = useSearchParams();
   const urlRole = searchParams?.get('role');
   
@@ -548,5 +548,13 @@ export default function SignupPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupContent />
+    </Suspense>
   );
 }
