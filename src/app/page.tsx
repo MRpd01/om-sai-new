@@ -71,9 +71,21 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-orange-200">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 relative"
+      style={{
+        backgroundImage: "url('/images/HomeFoodImg.jpeg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Background overlay for better text readability */}
+      <div className="absolute inset-0 bg-white bg-opacity-80"></div>
+      
+      {/* Content wrapper */}
+      <div className="relative z-10">
+        <header className="bg-white/90 backdrop-blur-sm shadow-sm border-b border-orange-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             {/* Logo */}
@@ -315,7 +327,7 @@ export default function Home() {
         </div>
 
         {/* Features Section */}
-        <section id="features" className="py-20 bg-white">
+        <section id="features" className="py-20 bg-white/90 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4">
@@ -379,7 +391,7 @@ export default function Home() {
         </section>
 
         {/* About Section */}
-        <section id="about" className="py-20 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+        <section id="about" className="py-20 bg-gradient-to-br from-orange-50/90 via-amber-50/90 to-yellow-50/90 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-8">
@@ -498,6 +510,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 }
