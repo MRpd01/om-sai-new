@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true, // Temporarily disable ESLint during builds to bypass Vercel deployment issue
   },
+  // Fix for multiple lockfiles warning
+  outputFileTracingRoot: __dirname,
 };
 
 export default nextConfig;
