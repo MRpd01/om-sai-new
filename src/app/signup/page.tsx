@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function SignupPage() {
   const searchParams = useSearchParams();
-  const urlRole = searchParams.get('role');
+  const urlRole = searchParams?.get('role');
   
   const [formData, setFormData] = useState({
     full_name: '',
