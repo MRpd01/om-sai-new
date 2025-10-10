@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
-  const urlRole = searchParams.get('role');
+  const urlRole = searchParams?.get('role');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
