@@ -30,7 +30,6 @@ export default function DashboardPage() {
     full_name: '',
     email: '',
     phone: '',
-    mess_id: '',
     plan: 'double_time' as 'double_time' | 'single_time' | 'half_month' | 'full_month',
     join_date: new Date().toISOString().split('T')[0]
   });
@@ -137,7 +136,6 @@ export default function DashboardPage() {
       full_name: '',
       email: '',
       phone: '',
-      mess_id: '',
       plan: 'double_time',
       join_date: new Date().toISOString().split('T')[0]
     });
@@ -148,8 +146,15 @@ export default function DashboardPage() {
   };
 
   const handleAddMember = async () => {
-    if (!newMemberData.full_name || !newMemberData.email || !newMemberData.mess_id) {
-      alert('Please fill all required fields');
+    if (!newMemberData.full_name || !newMemberData.email) {
+      alert('Please fill all required fields (Name and Email)');
+      return;
+    }
+
+    // Auto-assign the default mess (first available mess)
+    const defaultMessId = selectedMess || (messes.length > 0 ? messes[0].id : '');
+    if (!defaultMessId) {
+      alert('No mess available. Please ensure at least one mess is configured.');
       return;
     }
 
@@ -157,6 +162,9 @@ export default function DashboardPage() {
     try {
       // Here you would typically create the member in your database
       // For now, we'll simulate the process
+      const memberDataWithMess = { ...newMemberData, mess_id: defaultMessId };
+      console.log('Creating member:', memberDataWithMess);
+      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       alert('Member added successfully!');
@@ -465,16 +473,6 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-sm text-orange-900">Select Mess</label>
-                    <select value={selectedMess || ''} onChange={(e) => setSelectedMess(e.target.value)} className="w-full p-2 border border-orange-200 rounded-md">
-                      <option value="">Choose a mess</option>
-                      {messes.map(m => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
                     <label className="text-sm text-orange-900">Plan</label>
                     <select value={selectedPlan} onChange={(e) => setSelectedPlan(e.target.value as any)} className="w-full p-2 border border-orange-200 rounded-md">
                       <option value="double_time">Double Time - ₹2600 / month</option>
@@ -493,7 +491,7 @@ export default function DashboardPage() {
 
                   <div className="flex space-x-2">
                     <Button className="bg-orange-600 hover:bg-orange-700" onClick={async () => {
-                      if (!selectedMess) { alert('Please select a mess'); return; }
+                      if (!selectedMess) { alert('No mess available. Please contact admin.'); return; }
                       setProcessing(true);
                       try {
                         // Simulate payment then create payment & membership
@@ -797,20 +795,6 @@ export default function DashboardPage() {
                     placeholder="Enter phone number"
                     className="text-sm"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-orange-900 mb-1">Select Mess *</label>
-                  <select 
-                    value={newMemberData.mess_id} 
-                    onChange={(e) => setNewMemberData({...newMemberData, mess_id: e.target.value})} 
-                    className="w-full p-2 text-sm border border-orange-200 rounded-md"
-                  >
-                    <option value="">Choose a mess</option>
-                    {messes.map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
                 </div>
 
                 <div>

@@ -66,43 +66,31 @@ function SignupContent() {
   const openCamera = async () => {
     try {
       console.log('Requesting camera access...');
+      
+      // Simple camera request without complex constraints
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'user',
-          width: { ideal: 640, min: 320, max: 1280 },
-          height: { ideal: 480, min: 240, max: 720 }
-        }, 
+        video: true, 
         audio: false 
       });
+      
       console.log('Camera stream obtained:', stream);
-      console.log('Video tracks:', stream.getVideoTracks());
-      
       streamRef.current = stream;
+      setIsCameraOn(true);
       
+      // Set video source immediately
       if (videoRef.current) {
-        console.log('Setting video srcObject...');
         videoRef.current.srcObject = stream;
         
-        // Wait for metadata to load
-        videoRef.current.onloadedmetadata = () => {
-          console.log('Video metadata loaded');
-          console.log('Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
-          
-          if (videoRef.current) {
-            videoRef.current.play().then(() => {
-              console.log('Video playing successfully');
-              setIsCameraOn(true);
-            }).catch(err => {
-              console.error('Error playing video:', err);
-            });
+        // Auto-play the video
+        videoRef.current.onloadedmetadata = async () => {
+          console.log('Video metadata loaded, attempting to play...');
+          try {
+            await videoRef.current?.play();
+            console.log('Video started playing successfully');
+          } catch (playErr) {
+            console.error('Play error:', playErr);
           }
         };
-        
-        // Also try to play immediately if already loaded
-        if (videoRef.current.readyState >= 3) {
-          videoRef.current.play().catch(console.error);
-          setIsCameraOn(true);
-        }
       }
     } catch (err) {
       console.error('Camera permission denied or not available', err);
@@ -116,7 +104,33 @@ function SignupContent() {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setIsCameraOn(false);
+  };
+
+  // Test function to debug camera
+  const testCamera = async () => {
+    console.log('=== CAMERA TEST START ===');
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      console.log('Available devices:', devices.filter(d => d.kind === 'videoinput'));
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log('Test stream obtained:', stream);
+      console.log('Stream active:', stream.active);
+      console.log('Video tracks:', stream.getVideoTracks());
+      
+      // Stop test stream
+      stream.getTracks().forEach(track => track.stop());
+      
+      alert('Camera test successful! Check console for details.');
+    } catch (error) {
+      console.error('Camera test failed:', error);
+      alert('Camera test failed: ' + (error as Error).message);
+    }
+    console.log('=== CAMERA TEST END ===');
   };
 
   const captureFromCamera = async () => {
@@ -385,6 +399,15 @@ function SignupContent() {
                       {photoPreview && <div className="truncate">URL: {photoPreview.substring(0, 50)}...</div>}
                     </div>
 
+                    {/* Camera Test Button */}
+                    <button
+                      type="button"
+                      onClick={testCamera}
+                      className="mb-3 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                    >
+                      Test Camera Access
+                    </button>
+
                     <div className="flex items-center justify-center space-x-2">
                       {!isCameraOn && (
                         <>
@@ -461,19 +484,15 @@ function SignupContent() {
                       <div className="mt-3 flex flex-col items-center">
                         <video 
                           ref={videoRef} 
-                          className="w-48 h-36 rounded-lg bg-gray-800" 
+                          className="w-48 h-36 rounded-lg border border-orange-300" 
+                          autoPlay
                           playsInline 
                           muted 
-                          autoPlay
                           controls={false}
-                          style={{ objectFit: 'cover' }}
-                          onLoadedMetadata={() => {
-                            console.log('Video element loaded metadata');
-                            console.log('Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
-                          }}
-                          onPlay={() => console.log('Video element started playing')}
+                          style={{ backgroundColor: '#000' }}
+                          onCanPlay={() => console.log('Video ready to play')}
+                          onPlay={() => console.log('Video playing')}
                           onError={(e) => console.error('Video error:', e)}
-                          onCanPlay={() => console.log('Video can play')}
                         />
                         <canvas ref={canvasRef} className="hidden" />
                       </div>
