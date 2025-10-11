@@ -60,15 +60,32 @@ export default function DashboardPage() {
 
   const openMemberCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log('Requesting camera access...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 640, min: 320 },
+          height: { ideal: 480, min: 240 }
+        }, 
+        audio: false 
+      });
+      console.log('Camera access granted, setting up stream...');
       setMemberCameraStream(stream);
       setIsMemberCameraOn(true);
-      if (memberVideoRef.current) {
-        memberVideoRef.current.srcObject = stream;
-      }
+      
+      // Add a small delay to ensure state updates
+      setTimeout(() => {
+        if (memberVideoRef.current) {
+          memberVideoRef.current.srcObject = stream;
+          memberVideoRef.current.onloadedmetadata = () => {
+            console.log('Video metadata loaded, starting playback...');
+            memberVideoRef.current?.play().catch(console.error);
+          };
+        }
+      }, 100);
     } catch (error) {
       console.error('Error accessing camera:', error);
-      alert('Unable to access camera. Please check permissions.');
+      alert('Unable to access camera. Please check permissions and ensure you\'re using HTTPS or localhost.');
     }
   };
 
@@ -78,24 +95,38 @@ export default function DashboardPage() {
       const video = memberVideoRef.current;
       const context = canvas.getContext('2d');
       
+      // Wait for video to be ready
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        alert('Camera is not ready yet. Please wait a moment and try again.');
+        return;
+      }
+      
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      context?.drawImage(video, 0, 0);
       
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const file = new File([blob], 'member-photo.jpg', { type: 'image/jpeg' });
-          setMemberPhotoFile(file);
-          setMemberPhotoPreview(canvas.toDataURL('image/jpeg'));
-          closeMemberCamera();
-        }
-      }, 'image/jpeg');
+      if (context) {
+        // Clear canvas first
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        // Draw the video frame
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], 'member-photo.jpg', { type: 'image/jpeg' });
+            setMemberPhotoFile(file);
+            setMemberPhotoPreview(canvas.toDataURL('image/jpeg'));
+            closeMemberCamera();
+          }
+        }, 'image/jpeg', 0.8);
+      }
+    } else {
+      alert('Camera not available. Please try opening the camera again.');
     }
   };
 
   const closeMemberCamera = () => {
     if (memberCameraStream) {
-      memberCameraStream.getTracks().forEach(track => track.stop());
+      memberCameraStream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       setMemberCameraStream(null);
     }
     setIsMemberCameraOn(false);
@@ -672,6 +703,21 @@ export default function DashboardPage() {
                         ref={memberVideoRef}
                         autoPlay 
                         playsInline 
+                        muted
+                        controls={false}
+                        onLoadedMetadata={() => {
+                          console.log('Video metadata loaded');
+                          if (memberVideoRef.current) {
+                            memberVideoRef.current.play().catch(console.error);
+                          }
+                        }}
+                        onCanPlay={() => console.log('Video can play')}
+                        onPlay={() => console.log('Video started playing')}
+                        onError={(e) => console.error('Video error:', e)}
+                        style={{ 
+                          objectFit: 'cover',
+                          transform: 'scaleX(-1)' // Mirror the video like a selfie
+                        }}
                         className="w-full max-w-xs sm:w-64 h-36 sm:h-48 bg-gray-800 rounded-lg mx-auto"
                       />
                       <canvas ref={memberCanvasRef} style={{ display: 'none' }} />
@@ -682,6 +728,18 @@ export default function DashboardPage() {
                         </Button>
                         <Button variant="outline" onClick={closeMemberCamera} className="w-full sm:w-auto">
                           Cancel
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          onClick={() => {
+                            console.log('Video element:', memberVideoRef.current);
+                            console.log('Stream:', memberCameraStream);
+                            console.log('Video dimensions:', memberVideoRef.current?.videoWidth, 'x', memberVideoRef.current?.videoHeight);
+                            console.log('Video ready state:', memberVideoRef.current?.readyState);
+                          }}
+                          className="text-xs"
+                        >
+                          Debug
                         </Button>
                       </div>
                     </div>

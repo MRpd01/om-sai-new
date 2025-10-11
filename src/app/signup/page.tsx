@@ -65,11 +65,30 @@ function SignupContent() {
 
   const openCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      console.log('Requesting camera access...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 640, min: 320 },
+          height: { ideal: 480, min: 240 }
+        }, 
+        audio: false 
+      });
+      console.log('Camera stream obtained:', stream);
       streamRef.current = stream;
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded');
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              console.log('Video playing successfully');
+            }).catch(err => {
+              console.error('Error playing video:', err);
+            });
+          }
+        };
       }
       setIsCameraOn(true);
     } catch (err) {
@@ -282,10 +301,23 @@ function SignupContent() {
                     <div className="mx-auto mb-3 w-28 h-28 rounded-full overflow-hidden bg-orange-50 border border-orange-200 flex items-center justify-center">
                       {photoPreview ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={photoPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                        <img 
+                          src={photoPreview} 
+                          alt="Profile preview" 
+                          className="w-full h-full object-cover"
+                          onLoad={() => console.log('Image loaded successfully')}
+                          onError={(e) => console.error('Image failed to load:', e)}
+                        />
                       ) : (
                         <User className="h-12 w-12 text-orange-400" />
                       )}
+                    </div>
+                    
+                    {/* Debug info */}
+                    <div className="text-xs text-gray-500 mb-2">
+                      Photo Preview: {photoPreview ? '✓ Set' : '✗ Not set'} | 
+                      Camera: {isCameraOn ? '✓ On' : '✗ Off'} | 
+                      File: {photoFile ? '✓ Selected' : '✗ None'}
                     </div>
 
                     <div className="flex items-center justify-center space-x-2">
@@ -340,14 +372,20 @@ function SignupContent() {
                         accept="image/*"
                         className={`${isCameraOn ? 'hidden' : 'hidden'}`}
                         onChange={(e) => {
+                          console.log('File input changed:', e.target.files);
                           const f = e.target.files?.[0] || null;
                           if (f) {
+                            console.log('Selected file:', f.name, f.size, f.type);
                             // revoke previous preview
                             if (photoPreview) URL.revokeObjectURL(photoPreview);
                             const url = URL.createObjectURL(f);
+                            console.log('Created object URL:', url);
                             setPhotoFile(f);
                             setPhotoPreview(url);
                             setPhotoSelected(true);
+                            console.log('Photo state updated');
+                          } else {
+                            console.log('No file selected');
                           }
                         }}
                       />
@@ -356,7 +394,15 @@ function SignupContent() {
                     {/* Live camera preview */}
                     {isCameraOn && (
                       <div className="mt-3 flex flex-col items-center">
-                        <video ref={videoRef} className="w-48 h-36 rounded-lg bg-black" playsInline muted />
+                        <video 
+                          ref={videoRef} 
+                          className="w-48 h-36 rounded-lg bg-black" 
+                          playsInline 
+                          muted 
+                          autoPlay
+                          onLoadedMetadata={() => console.log('Video element loaded metadata')}
+                          onPlay={() => console.log('Video element started playing')}
+                        />
                         <canvas ref={canvasRef} className="hidden" />
                       </div>
                     )}
