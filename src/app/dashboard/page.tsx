@@ -253,7 +253,7 @@ export default function DashboardPage() {
                       e.stopPropagation();
                       setIsLanguageDropdownOpen(!isLanguageDropdownOpen);
                     }}
-                    className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-start"
+                    className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-start text-gray-900 hover:text-black hover:bg-orange-50"
                   >
                     <Globe className="h-4 w-4" />
                     <span className="hidden sm:inline">{availableLanguages.find(lang => lang.code === language)?.flag}</span>
@@ -284,15 +284,15 @@ export default function DashboardPage() {
               
               {/* Action Buttons - Stack on mobile, row on desktop */}
               <div className="flex flex-row gap-1 sm:gap-2">
-                <Button variant="ghost" size="sm" className="flex-1 sm:flex-none px-2 sm:px-3">
+                <Button variant="ghost" size="sm" className="flex-1 sm:flex-none px-2 sm:px-3 text-gray-900 hover:text-black hover:bg-orange-50">
                   <Bell className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline ml-1">{t('dashboard.notifications')}</span>
                 </Button>
-                <Button variant="ghost" size="sm" className="flex-1 sm:flex-none px-2 sm:px-3">
+                <Button variant="ghost" size="sm" className="flex-1 sm:flex-none px-2 sm:px-3 text-gray-900 hover:text-black hover:bg-orange-50">
                   <Settings className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline ml-1">{t('dashboard.settings')}</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleSignOut} className="flex-1 sm:flex-none px-2 sm:px-3">
+                <Button variant="outline" size="sm" onClick={handleSignOut} className="flex-1 sm:flex-none px-2 sm:px-3 text-gray-900 border-gray-300 hover:text-black hover:bg-red-50">
                   <LogOut className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline ml-1">{t('common.logout')}</span>
                 </Button>
@@ -341,7 +341,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-600">127</div>
-                  <p className="text-sm text-orange-500">Active Members</p>
+                  <p className="text-sm text-orange-700">Active Members</p>
                 </CardContent>
               </Card>
             </Link>
@@ -360,7 +360,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-orange-600">₹45,000</div>
-                <p className="text-sm text-orange-500">This Month</p>
+                <p className="text-sm text-orange-700">This Month</p>
               </CardContent>
             </Card>
 
@@ -379,7 +379,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-600">7</div>
-                  <p className="text-sm text-orange-500">Days Planned</p>
+                  <p className="text-sm text-orange-700">Days Planned</p>
                 </CardContent>
               </Card>
             </Link>
@@ -399,7 +399,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-600">2</div>
-                  <p className="text-sm text-orange-500">Active Admins</p>
+                  <p className="text-sm text-orange-700">Active Admins</p>
                 </CardContent>
               </Card>
             </Link>
@@ -450,7 +450,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-orange-600">+</div>
-                <p className="text-sm text-orange-500">Click to add member</p>
+                <p className="text-sm text-orange-700">Click to add member</p>
               </CardContent>
             </Card>
           </div>
@@ -560,7 +560,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">Paid</div>
-                <p className="text-sm text-orange-500">Valid until Dec 31, 2025</p>
+                <p className="text-sm text-orange-700">Valid until Dec 31, 2025</p>
               </CardContent>
             </Card>
 

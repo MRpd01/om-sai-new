@@ -61,6 +61,15 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Ensure text visibility by default */
+.text-muted {
+  color: #4b5563 !important; /* gray-600 instead of very light gray */
+}
+
+.text-muted-foreground {
+  color: #6b7280 !important; /* gray-500 instead of very light gray */
+}
+
 .food-gradient {
   background: linear-gradient(135deg, #fed7aa 0%, #fb923c 25%, #ea580c 50%, #dc2626 75%, #991b1b 100%);
 }
