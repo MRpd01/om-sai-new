@@ -69,28 +69,41 @@ function SignupContent() {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'user',
-          width: { ideal: 640, min: 320 },
-          height: { ideal: 480, min: 240 }
+          width: { ideal: 640, min: 320, max: 1280 },
+          height: { ideal: 480, min: 240, max: 720 }
         }, 
         audio: false 
       });
       console.log('Camera stream obtained:', stream);
+      console.log('Video tracks:', stream.getVideoTracks());
+      
       streamRef.current = stream;
       
       if (videoRef.current) {
+        console.log('Setting video srcObject...');
         videoRef.current.srcObject = stream;
+        
+        // Wait for metadata to load
         videoRef.current.onloadedmetadata = () => {
           console.log('Video metadata loaded');
+          console.log('Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+          
           if (videoRef.current) {
             videoRef.current.play().then(() => {
               console.log('Video playing successfully');
+              setIsCameraOn(true);
             }).catch(err => {
               console.error('Error playing video:', err);
             });
           }
         };
+        
+        // Also try to play immediately if already loaded
+        if (videoRef.current.readyState >= 3) {
+          videoRef.current.play().catch(console.error);
+          setIsCameraOn(true);
+        }
       }
-      setIsCameraOn(true);
     } catch (err) {
       console.error('Camera permission denied or not available', err);
       setIsCameraOn(false);
@@ -107,27 +120,67 @@ function SignupContent() {
   };
 
   const captureFromCamera = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current) {
+      console.error('Video element not found');
+      return;
+    }
+    
     const video = videoRef.current;
+    
+    if (video.readyState !== 4) {
+      console.error('Video not ready, readyState:', video.readyState);
+      alert('Please wait for camera to load completely');
+      return;
+    }
+    
+    console.log('Capturing from video...');
+    console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+    
     const canvas = canvasRef.current || document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 480;
+    
+    canvas.width = width;
+    canvas.height = height;
+    
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    // convert to blob and create File
+    if (!ctx) {
+      console.error('Could not get canvas context');
+      return;
+    }
+    
+    // Draw the video frame to canvas
+    ctx.drawImage(video, 0, 0, width, height);
+    
+    // Convert to blob and create File
     canvas.toBlob((blob) => {
-      if (!blob) return;
-      const file = new File([blob], `avatar_${Date.now()}.png`, { type: blob.type });
+      if (!blob) {
+        console.error('Failed to create blob from canvas');
+        return;
+      }
+      
+      console.log('Blob created:', blob.size, 'bytes, type:', blob.type);
+      
+      const file = new File([blob], `avatar_${Date.now()}.png`, { type: 'image/png' });
+      console.log('File created:', file.name, file.size, file.type);
+      
       // revoke previous preview
-      if (photoPreview) URL.revokeObjectURL(photoPreview);
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+      }
+      
       const url = URL.createObjectURL(file);
+      console.log('Object URL created:', url);
+      
       setPhotoFile(file);
       setPhotoPreview(url);
       setPhotoSelected(true);
+      
       // stop camera after capture
       closeCamera();
-    }, 'image/png');
+      
+      console.log('Capture complete, photo state updated');
+    }, 'image/png', 0.9);
   };
 
   const markPhotoSelected = () => {
@@ -305,8 +358,19 @@ function SignupContent() {
                           src={photoPreview} 
                           alt="Profile preview" 
                           className="w-full h-full object-cover"
-                          onLoad={() => console.log('Image loaded successfully')}
-                          onError={(e) => console.error('Image failed to load:', e)}
+                          onLoad={() => {
+                            console.log('Image loaded successfully:', photoPreview);
+                          }}
+                          onError={(e) => {
+                            console.error('Image failed to load:', e);
+                            console.error('Image src:', photoPreview);
+                          }}
+                          style={{ 
+                            display: 'block',
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover' 
+                          }}
                         />
                       ) : (
                         <User className="h-12 w-12 text-orange-400" />
@@ -318,6 +382,7 @@ function SignupContent() {
                       Photo Preview: {photoPreview ? '✓ Set' : '✗ Not set'} | 
                       Camera: {isCameraOn ? '✓ On' : '✗ Off'} | 
                       File: {photoFile ? '✓ Selected' : '✗ None'}
+                      {photoPreview && <div className="truncate">URL: {photoPreview.substring(0, 50)}...</div>}
                     </div>
 
                     <div className="flex items-center justify-center space-x-2">
@@ -396,12 +461,19 @@ function SignupContent() {
                       <div className="mt-3 flex flex-col items-center">
                         <video 
                           ref={videoRef} 
-                          className="w-48 h-36 rounded-lg bg-black" 
+                          className="w-48 h-36 rounded-lg bg-gray-800" 
                           playsInline 
                           muted 
                           autoPlay
-                          onLoadedMetadata={() => console.log('Video element loaded metadata')}
+                          controls={false}
+                          style={{ objectFit: 'cover' }}
+                          onLoadedMetadata={() => {
+                            console.log('Video element loaded metadata');
+                            console.log('Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+                          }}
                           onPlay={() => console.log('Video element started playing')}
+                          onError={(e) => console.error('Video error:', e)}
+                          onCanPlay={() => console.log('Video can play')}
                         />
                         <canvas ref={canvasRef} className="hidden" />
                       </div>
