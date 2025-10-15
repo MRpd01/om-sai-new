@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MessMate - Mess Management Platform",
+  title: "ओम साई भोजनालय - Mess Management Platform",
   description: "Complete solution for managing your mess operations with payments, menu planning, and member management",
 };
 

@@ -1,10 +1,22 @@
+-- CORRECTED SCHEMA - Run this in Supabase SQL Editor
+-- This fixes the circular dependency between users and messes tables
+
 -- Create custom types
 CREATE TYPE user_role AS ENUM ('user', 'admin');
 CREATE TYPE subscription_type AS ENUM ('full_month', 'half_month', 'single_morning', 'single_evening', 'double_time');
 CREATE TYPE payment_status AS ENUM ('success', 'due', 'pending', 'failed');
 CREATE TYPE enquiry_status AS ENUM ('pending', 'responded', 'closed');
 
--- Create users table (extends Supabase auth.users)
+-- Create updated_at trigger function first
+CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Step 1: Create users table WITHOUT mess_id reference (add it later)
 CREATE TABLE public.users (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     name TEXT NOT NULL,
@@ -12,13 +24,13 @@ CREATE TABLE public.users (
     parent_mobile TEXT,
     photo_url TEXT,
     role user_role DEFAULT 'user',
-    mess_id UUID REFERENCES public.messes(id) ON DELETE SET NULL,
+    -- mess_id will be added later after messes table is created
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Create messes table
+-- Step 2: Create messes table (can now reference users.id)
 CREATE TABLE public.messes (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
@@ -30,7 +42,10 @@ CREATE TABLE public.messes (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Create mess_members table
+-- Step 3: Now add mess_id column to users table
+ALTER TABLE public.users ADD COLUMN mess_id UUID REFERENCES public.messes(id) ON DELETE SET NULL;
+
+-- Create remaining tables
 CREATE TABLE public.mess_members (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
@@ -45,7 +60,6 @@ CREATE TABLE public.mess_members (
     UNIQUE(user_id, mess_id)
 );
 
--- Create payments table
 CREATE TABLE public.payments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
@@ -59,7 +73,6 @@ CREATE TABLE public.payments (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Create enquiries table
 CREATE TABLE public.enquiries (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
@@ -71,28 +84,50 @@ CREATE TABLE public.enquiries (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Create mess_admins table (for multiple admins per mess)
 CREATE TABLE public.mess_admins (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     mess_id UUID REFERENCES public.messes(id) ON DELETE CASCADE NOT NULL,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
-    assigned_by UUID REFERENCES public.users(id) NOT NULL, -- The owner who assigned this admin
+    assigned_by UUID REFERENCES public.users(id) NOT NULL,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     UNIQUE(mess_id, user_id)
 );
 
--- Create notifications table
 CREATE TABLE public.notifications (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
-    type TEXT NOT NULL, -- 'payment_reminder', 'expiry_alert', 'welcome', etc.
+    type TEXT NOT NULL,
     title TEXT NOT NULL,
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT false,
     sent_via JSONB DEFAULT '{"email": false, "whatsapp": false}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE public.menus (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    mess_id UUID REFERENCES public.messes(id) ON DELETE CASCADE NOT NULL,
+    menu_date DATE NOT NULL,
+    title TEXT,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(mess_id, menu_date)
+);
+
+CREATE TABLE public.menu_items (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    menu_id UUID REFERENCES public.menus(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    is_veg BOOLEAN DEFAULT true,
+    price DECIMAL(10,2) DEFAULT 0,
+    image_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Enable Row Level Security
@@ -103,10 +138,10 @@ ALTER TABLE public.mess_admins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.enquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.menus ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.menu_items ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
-
--- Users policies
 CREATE POLICY "Users can view their own profile" ON public.users
     FOR SELECT USING (auth.uid() = id);
 
@@ -129,14 +164,12 @@ CREATE POLICY "Admins can view users in their mess" ON public.users
         )
     );
 
--- Messes policies
 CREATE POLICY "Anyone can view active messes" ON public.messes
     FOR SELECT USING (is_active = true);
 
 CREATE POLICY "Admins can manage their own mess" ON public.messes
     FOR ALL USING (admin_id = auth.uid());
 
--- Mess admins policies
 CREATE POLICY "Mess admins can view assigned messes" ON public.mess_admins
     FOR SELECT USING (user_id = auth.uid() OR 
         EXISTS (
@@ -155,7 +188,6 @@ CREATE POLICY "Mess owners can manage admins" ON public.mess_admins
         )
     );
 
--- Mess members policies
 CREATE POLICY "Users can view their own membership" ON public.mess_members
     FOR SELECT USING (user_id = auth.uid());
 
@@ -175,47 +207,6 @@ CREATE POLICY "Admins can manage members in their mess" ON public.mess_members
         )
     );
 
--- Create indexes for better performance
-CREATE INDEX idx_users_role ON public.users(role);
-CREATE INDEX idx_users_mess_id ON public.users(mess_id);
-CREATE INDEX idx_mess_members_user_id ON public.mess_members(user_id);
-CREATE INDEX idx_mess_members_mess_id ON public.mess_members(mess_id);
-CREATE INDEX idx_mess_members_expiry_date ON public.mess_members(expiry_date);
-CREATE INDEX idx_payments_user_id ON public.payments(user_id);
-CREATE INDEX idx_payments_mess_id ON public.payments(mess_id);
-CREATE INDEX idx_payments_status ON public.payments(status);
-
--- Create menus table (daily or date-specific menus per mess)
-CREATE TABLE public.menus (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    mess_id UUID REFERENCES public.messes(id) ON DELETE CASCADE NOT NULL,
-    menu_date DATE NOT NULL,
-    title TEXT,
-    notes TEXT,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    UNIQUE(mess_id, menu_date)
-);
-
--- Create menu_items table
-CREATE TABLE public.menu_items (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    menu_id UUID REFERENCES public.menus(id) ON DELETE CASCADE NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
-    is_veg BOOLEAN DEFAULT true,
-    price DECIMAL(10,2) DEFAULT 0,
-    image_url TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- Enable Row Level Security on menus
-ALTER TABLE public.menus ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.menu_items ENABLE ROW LEVEL SECURITY;
-
--- Menus policies
 CREATE POLICY "Anyone can view active menus for a mess" ON public.menus
     FOR SELECT USING (is_active = true);
 
@@ -235,7 +226,6 @@ CREATE POLICY "Admins can manage menus for their mess" ON public.menus
         )
     );
 
--- Menu items policies
 CREATE POLICY "Anyone can view menu items for active menus" ON public.menu_items
     FOR SELECT USING (
         EXISTS (
@@ -261,12 +251,45 @@ CREATE POLICY "Admins can manage menu items for their mess" ON public.menu_items
         )
     );
 
--- Indexes for menus
+-- Create indexes for better performance
+CREATE INDEX idx_users_role ON public.users(role);
+CREATE INDEX idx_users_mess_id ON public.users(mess_id);
+CREATE INDEX idx_mess_members_user_id ON public.mess_members(user_id);
+CREATE INDEX idx_mess_members_mess_id ON public.mess_members(mess_id);
+CREATE INDEX idx_mess_members_expiry_date ON public.mess_members(expiry_date);
+CREATE INDEX idx_payments_user_id ON public.payments(user_id);
+CREATE INDEX idx_payments_mess_id ON public.payments(mess_id);
+CREATE INDEX idx_payments_status ON public.payments(status);
 CREATE INDEX idx_menus_mess_id ON public.menus(mess_id);
 CREATE INDEX idx_menus_menu_date ON public.menus(menu_date);
 CREATE INDEX idx_menu_items_menu_id ON public.menu_items(menu_id);
 
--- Triggers for updated_at on menus and menu_items
+-- Create triggers for updated_at
+CREATE TRIGGER set_timestamp_users
+    BEFORE UPDATE ON public.users
+    FOR EACH ROW
+    EXECUTE PROCEDURE trigger_set_timestamp();
+
+CREATE TRIGGER set_timestamp_messes
+    BEFORE UPDATE ON public.messes
+    FOR EACH ROW
+    EXECUTE PROCEDURE trigger_set_timestamp();
+
+CREATE TRIGGER set_timestamp_mess_members
+    BEFORE UPDATE ON public.mess_members
+    FOR EACH ROW
+    EXECUTE PROCEDURE trigger_set_timestamp();
+
+CREATE TRIGGER set_timestamp_payments
+    BEFORE UPDATE ON public.payments
+    FOR EACH ROW
+    EXECUTE PROCEDURE trigger_set_timestamp();
+
+CREATE TRIGGER set_timestamp_enquiries
+    BEFORE UPDATE ON public.enquiries
+    FOR EACH ROW
+    EXECUTE PROCEDURE trigger_set_timestamp();
+
 CREATE TRIGGER set_timestamp_menus
     BEFORE UPDATE ON public.menus
     FOR EACH ROW
@@ -277,13 +300,7 @@ CREATE TRIGGER set_timestamp_menu_items
     FOR EACH ROW
     EXECUTE PROCEDURE trigger_set_timestamp();
 
--- =====================
--- RPC functions for menus
--- =====================
-
-/*
-    create_menu(mess_id, menu_date, title, notes) -> creates a menu for the mess if caller is owner or assigned admin
-*/
+-- RPC Functions for menu management
 CREATE OR REPLACE FUNCTION public.create_menu(
     p_mess_id UUID,
     p_menu_date DATE,
@@ -294,7 +311,6 @@ DECLARE
     v_exists BOOLEAN;
     v_row public.menus;
 BEGIN
-    -- ensure caller is owner or assigned admin for the target mess
     SELECT EXISTS(
         SELECT 1 FROM public.messes WHERE id = p_mess_id AND admin_id = auth.uid()
     ) OR EXISTS(
@@ -313,9 +329,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-/*
-    update_menu(menu_id, title, notes, is_active) -> updates a menu if caller has rights
-*/
 CREATE OR REPLACE FUNCTION public.update_menu(
     p_menu_id UUID,
     p_title TEXT,
@@ -350,9 +363,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-/*
-    delete_menu(menu_id) -> deletes a menu if caller has rights
-*/
 CREATE OR REPLACE FUNCTION public.delete_menu(p_menu_id UUID) RETURNS void AS $$
 DECLARE
     v_mess_id UUID;
@@ -377,13 +387,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- =====================
--- RPC functions for menu_items
--- =====================
-
-/*
-    create_menu_item(menu_id, name, description, is_veg, price, image_url)
-*/
 CREATE OR REPLACE FUNCTION public.create_menu_item(
     p_menu_id UUID,
     p_name TEXT,
@@ -420,9 +423,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-/*
-    update_menu_item(item_id, name, description, is_veg, price, image_url)
-*/
 CREATE OR REPLACE FUNCTION public.update_menu_item(
     p_item_id UUID,
     p_name TEXT,
@@ -462,9 +462,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-/*
-    delete_menu_item(item_id)
-*/
 CREATE OR REPLACE FUNCTION public.delete_menu_item(p_item_id UUID) RETURNS void AS $$
 DECLARE
     v_menu_id UUID;
@@ -492,45 +489,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Grant execute permission so authenticated users can call these RPCs (RLS and checks inside functions still apply)
+-- Grant execute permissions
 GRANT EXECUTE ON FUNCTION public.create_menu(UUID, DATE, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_menu(UUID, TEXT, TEXT, BOOLEAN) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_menu(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.create_menu_item(UUID, TEXT, TEXT, BOOLEAN, NUMERIC, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_menu_item(UUID, TEXT, TEXT, BOOLEAN, NUMERIC, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_menu_item(UUID) TO authenticated;
-
--- Create updated_at trigger function
-CREATE OR REPLACE FUNCTION trigger_set_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create triggers for updated_at
-CREATE TRIGGER set_timestamp_users
-    BEFORE UPDATE ON public.users
-    FOR EACH ROW
-    EXECUTE PROCEDURE trigger_set_timestamp();
-
-CREATE TRIGGER set_timestamp_messes
-    BEFORE UPDATE ON public.messes
-    FOR EACH ROW
-    EXECUTE PROCEDURE trigger_set_timestamp();
-
-CREATE TRIGGER set_timestamp_mess_members
-    BEFORE UPDATE ON public.mess_members
-    FOR EACH ROW
-    EXECUTE PROCEDURE trigger_set_timestamp();
-
-CREATE TRIGGER set_timestamp_payments
-    BEFORE UPDATE ON public.payments
-    FOR EACH ROW
-    EXECUTE PROCEDURE trigger_set_timestamp();
-
-CREATE TRIGGER set_timestamp_enquiries
-    BEFORE UPDATE ON public.enquiries
-    FOR EACH ROW
-    EXECUTE PROCEDURE trigger_set_timestamp();

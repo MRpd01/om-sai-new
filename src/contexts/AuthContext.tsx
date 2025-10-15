@@ -1,71 +1,113 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase } from '@/lib/supabase';
+import type { User, Session, AuthError } from '@supabase/supabase-js';
 
-// Mock user type for demo
-interface MockUser {
-  id: string;
-  email: string;
-  user_metadata?: {
+// Extended user interface for our app
+interface AppUser extends User {
+  user_metadata: {
     role?: string;
     full_name?: string;
     phone?: string;
-      avatar?: string;
-    language?: 'en' | 'mr'; // Add language preference
+    avatar?: string;
+    language?: 'en' | 'mr';
+    mess_id?: string;
   };
 }
 
 interface AuthContextType {
-  user: MockUser | null;
+  user: AppUser | null;
+  session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, userData: any) => Promise<{ error: AuthError | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-  updateProfile: (updates: any) => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  updateProfile: (updates: any) => Promise<{ error: AuthError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<MockUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('messmate_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user as AppUser || null);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      setUser(session?.user as AppUser || null);
+      setLoading(false);
+
+      // Handle user profile creation on signup
+      if (event === 'SIGNED_IN' && session?.user && !user) {
+        await createUserProfile(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Create user profile in our users table
+  const createUserProfile = async (user: User) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .insert([
+          {
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || '',
+            phone: user.user_metadata?.phone || '',
+            role: user.user_metadata?.role || 'user',
+            avatar_url: user.user_metadata?.avatar || null,
+            language: user.user_metadata?.language || 'mr',
+            mess_id: user.user_metadata?.mess_id || null,
+          },
+        ]);
+
+      if (error) {
+        console.error('Error creating user profile:', error);
+      }
+    } catch (error) {
+      console.error('Error creating user profile:', error);
+    }
+  };
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
       setLoading(true);
       
-      // Mock user creation
-      const newUser: MockUser = {
-        id: `user_${Date.now()}`,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        user_metadata: {
-          role: userData.role || 'user',
-          full_name: userData.full_name,
-          phone: userData.phone,
-          avatar: userData.avatar,
+        password,
+        options: {
+          data: {
+            role: userData.role || 'user',
+            full_name: userData.full_name || '',
+            phone: userData.phone || '',
+            avatar: userData.avatar || null,
+            language: userData.language || 'mr',
+          },
         },
-      };
+      });
 
-      // Store in localStorage for demo
-      localStorage.setItem('messmate_user', JSON.stringify(newUser));
-      setUser(newUser);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (error) throw error;
       
       return { error: null };
     } catch (error) {
-      return { error: { message: 'Failed to create account' } };
+      return { error: error as AuthError };
     } finally {
       setLoading(false);
     }
@@ -75,52 +117,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       
-      // Demo users for testing
-      const demoUsers = {
-        'user@demo.com': { role: 'user', full_name: 'Demo User', language: 'en' as const },
-        'admin@demo.com': { role: 'admin', full_name: 'Demo Admin', language: 'mr' as const }, // Admin defaults to Marathi
-      };
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      // Check if it's a demo user
-      const demoUser = demoUsers[email as keyof typeof demoUsers];
+      if (error) throw error;
       
-      if (demoUser && password === 'demo123') {
-        const mockUser: MockUser = {
-          id: `user_${Date.now()}`,
-          email,
-          user_metadata: demoUser,
-        };
-        
-        localStorage.setItem('messmate_user', JSON.stringify(mockUser));
-        setUser(mockUser);
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        return { error: null };
-      }
-      
-      // For other emails, just simulate a successful login
-      if (password.length >= 6) {
-        const mockUser: MockUser = {
-          id: `user_${Date.now()}`,
-          email,
-          user_metadata: {
-            role: 'user',
-            full_name: email.split('@')[0],
-          },
-        };
-        
-        localStorage.setItem('messmate_user', JSON.stringify(mockUser));
-        setUser(mockUser);
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return { error: null };
-      }
-      
-      return { error: { message: 'Invalid email or password' } };
+      return { error: null };
     } catch (error) {
-      return { error: { message: 'Failed to sign in' } };
+      return { error: error as AuthError };
     } finally {
       setLoading(false);
     }
@@ -129,11 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       setLoading(true);
-      localStorage.removeItem('messmate_user');
-      setUser(null);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     } catch (error) {
       console.error('Sign out error:', error);
     } finally {
@@ -143,37 +146,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      // Simulate password reset
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) throw error;
+      
       return { error: null };
     } catch (error) {
-      return { error: { message: 'Failed to send reset email' } };
+      return { error: error as AuthError };
     }
   };
 
   const updateProfile = async (updates: any) => {
     try {
-      if (!user) return { error: { message: 'No user logged in' } };
+      if (!user) return { error: { message: 'No user logged in' } as AuthError };
 
-      const updatedUser = {
-        ...user,
-        user_metadata: {
-          ...user.user_metadata,
-          ...updates,
-        },
-      };
+      // Update auth metadata
+      const { error: authError } = await supabase.auth.updateUser({
+        data: updates,
+      });
 
-      localStorage.setItem('messmate_user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
+      if (authError) throw authError;
+
+      // Update user profile in our users table
+      const { error: profileError } = await supabase
+        .from('users')
+        .update({
+          full_name: updates.full_name,
+          phone: updates.phone,
+          avatar_url: updates.avatar,
+          language: updates.language,
+        })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
       
       return { error: null };
     } catch (error) {
-      return { error: { message: 'Failed to update profile' } };
+      return { error: error as AuthError };
     }
   };
 
   const value = {
     user,
+    session,
     loading,
     signUp,
     signIn,

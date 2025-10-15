@@ -63,10 +63,10 @@ export async function fetchMesses() {
     .eq('is_active', true);
 }
 
-// Create a payment record (simulated). For production, integrate with Razorpay flow.
+// Create a payment record (simulated). For production, integrate with PhonePe flow.
 export async function createPayment(user_id: string, mess_id: string, amount: number, subscription_type: string) {
-  const orderId = `local_order_${Date.now()}`;
-  return supabase.from('payments').insert([{ user_id, mess_id, amount, razorpay_order_id: orderId, status: 'success', subscription_type }]);
+  const transactionId = `local_txn_${Date.now()}`;
+  return supabase.from('payments').insert([{ user_id, mess_id, amount, phonepe_transaction_id: transactionId, status: 'success', subscription_type }]);
 }
 
 // Create a membership record

@@ -281,35 +281,61 @@ function SignupContent() {
     setLoading(true);
     setError('');
 
+    // If a photo is selected, convert to data URL and include in metadata
+    let avatarData: string | undefined = undefined;
+    if (photoFile) {
+      avatarData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Failed to read image'));
+        reader.readAsDataURL(photoFile);
+      }).catch(() => undefined);
+    }
+
     if (currentRole === 'user') {
-      // If a photo is selected, convert to data URL and include in metadata
-      let avatarData: string | undefined = undefined;
-      if (photoFile) {
-        avatarData = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(new Error('Failed to read image'));
-          reader.readAsDataURL(photoFile);
-        }).catch(() => undefined);
-      }
-      // For mess members, create account with password
+      // Create account with Supabase Auth
       const { error } = await signUp(formData.email, formData.password, {
         full_name: formData.full_name,
         phone: formData.phone,
-        role: formData.role
-        , avatar: avatarData
+        role: formData.role,
+        avatar: avatarData,
+        language: 'mr', // Default to Marathi
+      });
+      
+      if (error) {
+        // Handle specific Supabase auth errors
+        if (error.message === 'User already registered') {
+          setError('An account with this email already exists. Please sign in instead.');
+        } else if (error.message.includes('Password should be at least')) {
+          setError('Password must be at least 6 characters long.');
+        } else if (error.message.includes('Invalid email')) {
+          setError('Please enter a valid email address.');
+        } else if (error.message.includes('Signup requires email confirmation')) {
+          setError('Please check your email and click the confirmation link to complete registration.');
+        } else {
+          setError(error.message || 'Failed to create account');
+        }
+      } else {
+        // Show success message for email confirmation
+        alert('Registration successful! Please check your email and click the confirmation link to complete your account setup.');
+        router.push('/login');
+      }
+    } else {
+      // For mess owners, create account but mark as pending admin approval
+      const { error } = await signUp(formData.email, formData.password, {
+        full_name: formData.full_name,
+        phone: formData.phone,
+        role: 'admin',
+        avatar: avatarData,
+        language: 'mr',
       });
       
       if (error) {
         setError(error.message || 'Failed to create account');
       } else {
-        router.push('/dashboard');
+        alert(`Thank you ${formData.full_name}! Your mess owner registration has been submitted. Please check your email to confirm your account.`);
+        router.push('/login');
       }
-    } else {
-      // For mess owners, just collect information (no password needed for demo)
-      // In a real app, this would send data to admin or create a pending account
-      alert(`Thank you ${formData.full_name}! Your mess owner registration has been submitted. You will receive login credentials via email shortly.`);
-      router.push('/');
     }
     
     setLoading(false);

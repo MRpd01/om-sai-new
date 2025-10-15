@@ -298,7 +298,10 @@ export default function MenuPage() {
                   Back to Dashboard
                 </Button>
               </Link>
-              <div className="p-2 bg-orange-600 rounded-lg">
+              <div 
+                className="p-2 bg-orange-600 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => router.push('/')}
+              >
                 <ChefHat className="h-6 w-6 text-white" />
               </div>
               <div>

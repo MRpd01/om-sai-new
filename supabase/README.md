@@ -4,7 +4,7 @@ Key tables defined:
 - users: Extends Supabase auth.users and stores profile details (name, mobile, photo_url, role, mess_id).
 - messes: Mess businesses with pricing JSON and admin reference.
 - mess_members: Membership records linking users to messes, subscription type and expiry.
-- payments: Razorpay-related payments and statuses.
+- payments: PhonePe-related payments and statuses.
 - enquiries: User enquiries to mess admins.
 - mess_admins: Additional admin assignments per mess.
 - notifications: Notifications to users.

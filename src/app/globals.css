@@ -107,11 +107,97 @@ body {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
 }
 
+/* Ensure background image loads */
+.hero-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/images/HomeFoodImg.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+  opacity: 0.9;
+}
+
+/* Mobile responsiveness for background */
 @media (max-width: 768px) {
   .hero-bg {
     background-attachment: scroll;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  }
+  
+  .hero-bg::before {
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center center;
+    opacity: 1;
+  }
+}
+
+/* Very small mobile devices */
+@media (max-width: 480px) {
+  .hero-bg {
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100vw;
+    position: relative;
+  }
+  
+  .hero-bg::before {
+    background-size: cover;
+    background-position: center center;
+    opacity: 1;
+  }
+}
+
+/* iPhone and similar devices */
+@media only screen and (max-width: 414px) {
+  .hero-bg {
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  
+  .hero-bg::before {
+    background-size: cover;
+    background-position: center center;
+    opacity: 1;
+  }
+}
+
+/* Tablet portrait */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hero-bg {
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .hero-bg {
+    background-image: url('/images/HomeFoodImg.jpeg'), linear-gradient(135deg, #fed7aa 0%, #fb923c 25%, #ea580c 50%, #dc2626 75%, #991b1b 100%);
   }
 }
 

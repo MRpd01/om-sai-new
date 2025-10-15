@@ -63,7 +63,16 @@ function LoginContent() {
     const { error } = await signIn(email, password);
     
     if (error) {
-      setError(error.message || 'Failed to sign in');
+      // Handle specific Supabase auth errors
+      if (error.message === 'Invalid login credentials') {
+        setError('Invalid email or password. Please check your credentials.');
+      } else if (error.message.includes('Email not confirmed')) {
+        setError('Please check your email and click the confirmation link before signing in.');
+      } else if (error.message.includes('Too many requests')) {
+        setError('Too many login attempts. Please try again later.');
+      } else {
+        setError(error.message || 'Failed to sign in');
+      }
     } else {
       router.push('/dashboard');
     }

@@ -5,7 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ChefHat, Users, CreditCard, Calendar, Bell, Settings, LogOut, User, Globe, ChevronDown, Camera, Upload, X, UserPlus } from 'lucide-react';
+import { ChefHat, Users, CreditCard, Calendar, Bell, Settings, LogOut, User, Globe, ChevronDown, Camera, Upload, X, UserPlus, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const { user, signOut, loading } = useAuth();
   const { language, setLanguage, t, availableLanguages } = useLanguage();
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
   
   // Subscription state (for users) - moved before early returns
@@ -231,19 +232,25 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-orange-200">
+      <header className="bg-white shadow-sm border-b border-orange-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 gap-4">
-            <div className="flex items-center space-x-3">
+          <div className="flex justify-between items-center py-3">
+            {/* Logo and Title */}
+            <div 
+              className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => router.push('/')}
+            >
               <div className="p-2 bg-orange-600 rounded-lg">
-                <ChefHat className="h-6 w-6 text-white" />
+                <ChefHat className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-orange-900">MessMate {t('nav.dashboard')}</h1>
-                <p className="text-xs sm:text-sm text-orange-600 capitalize">{userRole === 'admin' ? t('mess.messOwner') : t('dashboard.members')} Portal</p>
+                <h1 className="text-lg sm:text-xl font-bold text-orange-900">ओम साई भोजनालय</h1>
+                <p className="text-xs text-orange-600 capitalize">{userRole === 'admin' ? 'Admin Portal' : 'Member Portal'}</p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-2">
               {userRole === 'admin' && (
                 <div className="relative">
                   <Button 
@@ -253,12 +260,11 @@ export default function DashboardPage() {
                       e.stopPropagation();
                       setIsLanguageDropdownOpen(!isLanguageDropdownOpen);
                     }}
-                    className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-start text-gray-900 hover:text-black hover:bg-orange-50"
+                    className="flex items-center space-x-2 text-gray-900 hover:text-black hover:bg-orange-50"
                   >
                     <Globe className="h-4 w-4" />
-                    <span className="hidden sm:inline">{availableLanguages.find(lang => lang.code === language)?.flag}</span>
-                    <span className="hidden sm:inline">{availableLanguages.find(lang => lang.code === language)?.name}</span>
-                    <span className="sm:hidden">{availableLanguages.find(lang => lang.code === language)?.flag}</span>
+                    <span>{availableLanguages.find(lang => lang.code === language)?.flag}</span>
+                    <span>{availableLanguages.find(lang => lang.code === language)?.name}</span>
                     <ChevronDown className="h-3 w-3" />
                   </Button>
                   
@@ -282,23 +288,74 @@ export default function DashboardPage() {
                 </div>
               )}
               
-              {/* Action Buttons - Stack on mobile, row on desktop */}
-              <div className="flex flex-row gap-1 sm:gap-2">
-                <Button variant="ghost" size="sm" className="flex-1 sm:flex-none px-2 sm:px-3 text-gray-900 hover:text-black hover:bg-orange-50">
-                  <Bell className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline ml-1">{t('dashboard.notifications')}</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="flex-1 sm:flex-none px-2 sm:px-3 text-gray-900 hover:text-black hover:bg-orange-50">
-                  <Settings className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline ml-1">{t('dashboard.settings')}</span>
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleSignOut} className="flex-1 sm:flex-none px-2 sm:px-3 text-gray-900 border-gray-300 hover:text-black hover:bg-red-50">
-                  <LogOut className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline ml-1">{t('common.logout')}</span>
-                </Button>
-              </div>
+              <Button variant="ghost" size="sm" className="text-gray-900 hover:text-black hover:bg-orange-50">
+                <Bell className="h-4 w-4 mr-2" />
+                Notifications
+              </Button>
+              <Button variant="ghost" size="sm" className="text-gray-900 hover:text-black hover:bg-orange-50">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSignOut} className="text-gray-900 border-gray-300 hover:text-black hover:bg-red-50">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+
+            {/* Mobile Hamburger Menu */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-gray-900 hover:text-black hover:bg-orange-50 p-2"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
             </div>
           </div>
+
+          {/* Mobile Menu Dropdown */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden border-t border-orange-200 py-3 space-y-2">
+              {userRole === 'admin' && (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-orange-900 px-2">Language</div>
+                  <div className="flex space-x-1">
+                    {availableLanguages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          setLanguage(lang.code);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`px-2 py-1 rounded text-xs ${
+                          language === lang.code 
+                            ? 'bg-orange-600 text-white' 
+                            : 'bg-orange-100 text-orange-700'
+                        }`}
+                      >
+                        {lang.flag} {lang.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <Button variant="ghost" size="sm" className="w-full justify-start text-gray-900">
+                <Bell className="h-4 w-4 mr-2" />
+                Notifications
+              </Button>
+              <Button variant="ghost" size="sm" className="w-full justify-start text-gray-900">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSignOut} className="w-full justify-start text-gray-900">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          )}
         </div>
       </header>
 

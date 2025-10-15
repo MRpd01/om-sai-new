@@ -201,7 +201,7 @@ export default function MembersPage() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-orange-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 gap-4">
             <div className="flex items-center space-x-3">
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm">
@@ -209,17 +209,20 @@ export default function MembersPage() {
                   Back to Dashboard
                 </Button>
               </Link>
-              <div className="p-2 bg-orange-600 rounded-lg">
-                <Users className="h-6 w-6 text-white" />
+              <div 
+                className="p-2 bg-orange-600 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => router.push('/')}
+              >
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-orange-900">
+                <h1 className="text-lg sm:text-2xl font-bold text-orange-900">
                   {language === 'en' ? 'Member Management' : 'सदस्य व्यवस्थापन'}
                 </h1>
-                <p className="text-sm text-orange-600">Manage mess members and subscriptions</p>
+                <p className="text-xs sm:text-sm text-orange-600">Manage mess members and subscriptions</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
               <Button
                 onClick={() => setIsAddingMember(true)}
                 className="bg-orange-600 hover:bg-orange-700"
@@ -354,37 +357,39 @@ export default function MembersPage() {
           <CardContent>
             <div className="space-y-4">
               {filteredMembers.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
+                <div key={member.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-orange-50 rounded-lg space-y-3 md:space-y-0">
                   <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-orange-100 rounded-full">
+                    <div className="p-2 bg-orange-100 rounded-full flex-shrink-0">
                       <User className="h-5 w-5 text-orange-600" />
                     </div>
-                    <div>
-                      <h4 className="font-medium text-orange-900">{member.name}</h4>
-                      <div className="flex items-center space-x-4 text-sm text-orange-600">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium text-orange-900 truncate">{member.name}</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-orange-600 mt-1">
                         <div className="flex items-center space-x-1">
-                          <Mail className="h-3 w-3" />
-                          <span>{member.email}</span>
+                          <Mail className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{member.email}</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <Phone className="h-3 w-3" />
+                          <Phone className="h-3 w-3 flex-shrink-0" />
                           <span>{member.phone}</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <Calendar className="h-3 w-3" />
+                          <Calendar className="h-3 w-3 flex-shrink-0" />
                           <span>Joined {new Date(member.joinDate).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(member.status)}`}>
-                      {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlanColor(member.plan)}`}>
-                      {member.plan.toUpperCase()}
-                    </span>
-                    <div className="text-right">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                    <div className="flex space-x-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(member.status)}`}>
+                        {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlanColor(member.plan)}`}>
+                        {member.plan.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-left sm:text-right">
                       <div className="text-sm font-medium text-orange-900">₹{member.amount}</div>
                       <div className="text-xs text-orange-500">
                         {member.lastPayment ? `Last: ${new Date(member.lastPayment).toLocaleDateString()}` : 'No payment'}
