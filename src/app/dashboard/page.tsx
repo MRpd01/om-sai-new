@@ -1308,19 +1308,6 @@ export default function DashboardPage() {
               </CardHeader>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <ChefHat className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-orange-900">Feedback</CardTitle>
-                    <CardDescription>Share your suggestions</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-            </Card>
           </div>
         )}
 
