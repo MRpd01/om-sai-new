@@ -68,30 +68,54 @@ export default function GoogleMap({ className = "w-full h-96" }: GoogleMapProps)
   useEffect(() => {
     // Get user's current location
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCenter({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          // Fallback to a default location (Mumbai, India)
-          setCenter({
-            lat: 19.0760,
-            lng: 72.8777,
-          });
-          setError("Unable to get your location. Showing default location.");
-          setLoading(false);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      );
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setCenter({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+            setLoading(false);
+          },
+          (error) => {
+            // Log a more detailed error for debugging; some browsers provide an empty object
+            try {
+              console.error('Error getting location:', error, 'details:', {
+                code: (error && (error as any).code) || null,
+                message: (error && (error as any).message) || null,
+              });
+            } catch (logErr) {
+              console.error('Error logging geolocation error:', logErr);
+            }
+
+            // Interpret error codes when available
+            let friendly = 'Unable to get your location. Showing default location.';
+            const code = (error && (error as any).code) || null;
+            if (code === 1) {
+              friendly = 'Location permission denied. Showing default location.';
+            } else if (code === 2) {
+              friendly = 'Location unavailable. Showing default location.';
+            } else if (code === 3) {
+              friendly = 'Location request timed out. Showing default location.';
+            }
+
+            // Fallback to a default location (Mumbai, India)
+            setCenter({ lat: 19.0760, lng: 72.8777 });
+            setError(friendly);
+            setLoading(false);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          }
+        );
+      } catch (err) {
+        console.error('Exception while requesting geolocation:', err);
+        setCenter({ lat: 19.0760, lng: 72.8777 });
+        setError('Unable to access location APIs. Showing default location.');
+        setLoading(false);
+      }
     } else {
       // Fallback to default location
       setCenter({

@@ -39,7 +39,13 @@ const mockAdmins = [
 ];
 
 export default function ManageAdminsPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const [allocateEmail, setAllocateEmail] = useState('');
+  const [allocatePlan, setAllocatePlan] = useState('double_time');
+  const [allocateJoiningDate, setAllocateJoiningDate] = useState(new Date().toISOString().split('T')[0]);
+  const [allocatePaymentAmount, setAllocatePaymentAmount] = useState<number | ''>('');
+  const [allocatePaymentType, setAllocatePaymentType] = useState<'full' | 'advance'>('full');
+  const [allocating, setAllocating] = useState(false);
   const [admins, setAdmins] = useState(mockAdmins);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
@@ -50,28 +56,41 @@ export default function ManageAdminsPage() {
     if (!newAdminEmail.trim()) return;
 
     setLoading(true);
-    
-    // Mock API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newAdmin = {
-      id: `admin_${Date.now()}`,
-      user: {
-        id: `user_${Date.now()}`,
-        name: newAdminEmail.split('@')[0],
-        email: newAdminEmail,
-        mobile_number: '+91 9999999999',
-        role: 'admin' as const
-      },
-      assigned_by: user?.id || 'current_user',
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
+    try {
+      const resp = await fetch('/api/create-admin-by-owner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ email: newAdminEmail })
+      });
 
-    setAdmins([...admins, newAdmin]);
-    setNewAdminEmail('');
-    setShowAddForm(false);
-    setLoading(false);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error || 'Failed to create admin');
+
+      const newAdmin = {
+        id: data.id,
+        user: {
+          id: data.id,
+          name: newAdminEmail.split('@')[0],
+          email: newAdminEmail,
+          mobile_number: '+91 9999999999',
+          role: 'admin' as const
+        },
+        assigned_by: user?.id || 'current_user',
+        is_active: true,
+        created_at: new Date().toISOString()
+      };
+
+      setAdmins([...admins, newAdmin]);
+      setNewAdminEmail('');
+      setShowAddForm(false);
+    } catch (err: any) {
+      alert('Failed to add admin: ' + (err?.message || err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRemoveAdmin = async (adminId: string) => {
@@ -124,6 +143,106 @@ export default function ManageAdminsPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Admin: Allocate subscription by user email */}
+        <Card className="mb-6 border-orange-200">
+          <CardHeader>
+            <CardTitle className="text-orange-900">Allocate / Update Subscription by Email</CardTitle>
+            <CardDescription>
+              Enter a user's email to assign or update their mess subscription (admin only).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <input
+                type="email"
+                placeholder="User email"
+                value={allocateEmail}
+                onChange={(e) => setAllocateEmail(e.target.value)}
+                className="p-2 border border-orange-200 rounded-md"
+              />
+              <select
+                value={allocatePlan}
+                onChange={(e) => setAllocatePlan(e.target.value)}
+                className="p-2 border border-orange-200 rounded-md"
+              >
+                <option value="double_time">Double Time - ₹2600</option>
+                <option value="full_month">Full Month - ₹2600</option>
+                <option value="single_time">Single Time - ₹1500</option>
+                <option value="half_month">Half Month - ₹1300</option>
+              </select>
+              <input
+                type="date"
+                value={allocateJoiningDate}
+                onChange={(e) => setAllocateJoiningDate(e.target.value)}
+                className="p-2 border border-orange-200 rounded-md"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <select
+                value={allocatePaymentType}
+                onChange={(e) => setAllocatePaymentType(e.target.value as any)}
+                className="p-2 border border-orange-200 rounded-md"
+              >
+                <option value="full">Full Payment</option>
+                <option value="advance">Advance</option>
+              </select>
+              <input
+                type="number"
+                placeholder="Payment amount (optional)"
+                value={allocatePaymentAmount as any}
+                onChange={(e) => setAllocatePaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                className="p-2 border border-orange-200 rounded-md"
+                min={0}
+              />
+              <div />
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={async () => {
+                  if (!allocateEmail.trim()) { alert('Enter user email'); return; }
+                  setAllocating(true);
+                  try {
+                    const resp = await fetch('/api/admin-allocate-subscription', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${session?.access_token}`
+                      },
+                      body: JSON.stringify({
+                        userEmail: allocateEmail.trim(),
+                        plan: allocatePlan,
+                        joiningDate: allocateJoiningDate,
+                        paymentAmount: allocatePaymentAmount || 0,
+                        paymentType: allocatePaymentType
+                      })
+                    });
+
+                    const data = await resp.json();
+                    if (!resp.ok) throw new Error(data.error || 'Failed to allocate');
+                    alert('Subscription allocated/updated successfully');
+                    // reset
+                    setAllocateEmail('');
+                    setAllocatePaymentAmount('');
+                  } catch (err: any) {
+                    alert('Allocation failed: ' + (err?.message || err));
+                  } finally {
+                    setAllocating(false);
+                  }
+                }}
+                disabled={allocating}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                {allocating ? 'Allocating...' : 'Allocate / Update'}
+              </Button>
+              <Button variant="outline" onClick={() => { setAllocateEmail(''); setAllocatePaymentAmount(''); }}>
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Add Admin Form */}
         {showAddForm && (
           <Card className="mb-8 border-orange-200">

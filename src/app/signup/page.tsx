@@ -17,6 +17,8 @@ function SignupContent() {
     full_name: '',
     email: '',
     phone: '',
+    parent_mobile: '',
+    joining_date: '',
     password: '',
     confirmPassword: '',
     role: urlRole || 'user'
@@ -28,9 +30,11 @@ function SignupContent() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
+  const [videoReadyState, setVideoReadyState] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const videoListenersRef = useRef<Array<() => void>>([]);
   const [photoSelected, setPhotoSelected] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
@@ -81,16 +85,33 @@ function SignupContent() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         
-        // Auto-play the video
-        videoRef.current.onloadedmetadata = async () => {
+        // Auto-play the video and mark ready when playable
+        const vid = videoRef.current;
+        const onCanPlay = () => {
+          console.log('Video can play');
+          setVideoReadyState(true);
+        };
+        const onLoadedMetadata = async () => {
           console.log('Video metadata loaded, attempting to play...');
           try {
-            await videoRef.current?.play();
+            await vid?.play();
             console.log('Video started playing successfully');
+            setVideoReadyState(true);
           } catch (playErr) {
             console.error('Play error:', playErr);
           }
         };
+        const onPlay = () => setVideoReadyState(true);
+
+        vid.addEventListener('canplay', onCanPlay);
+        vid.addEventListener('loadedmetadata', onLoadedMetadata);
+        vid.addEventListener('play', onPlay);
+        // remember listeners to remove later
+        videoListenersRef.current = [
+          () => vid.removeEventListener('canplay', onCanPlay),
+          () => vid.removeEventListener('loadedmetadata', onLoadedMetadata),
+          () => vid.removeEventListener('play', onPlay),
+        ];
       }
     } catch (err) {
       console.error('Camera permission denied or not available', err);
@@ -106,8 +127,15 @@ function SignupContent() {
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
+      // remove any attached listeners
+      try {
+        videoListenersRef.current.forEach(fn => fn());
+      } catch (e) {
+        console.error('Error removing video listeners:', e);
+      }
     }
     setIsCameraOn(false);
+    setVideoReadyState(false);
   };
 
   // Test function to debug camera
@@ -140,9 +168,73 @@ function SignupContent() {
     }
     
     const video = videoRef.current;
-    
-    if (video.readyState !== 4) {
-      console.error('Video not ready, readyState:', video.readyState);
+    // Wait for video to become ready (HAVE_ENOUGH_DATA / canplay) up to a timeout
+    const waitForVideoReady = (timeout = 5000) => new Promise<boolean>((resolve) => {
+      if (video.readyState >= 3) return resolve(true); // HAVE_FUTURE_DATA (3) or HAVE_ENOUGH_DATA (4)
+      let settled = false;
+      const timer = setTimeout(() => { if (!settled) { settled = true; resolve(false); } }, timeout);
+      const onReady = () => { if (!settled) { settled = true; clearTimeout(timer); resolve(true); } };
+      video.addEventListener('canplay', onReady, { once: true });
+      video.addEventListener('loadedmetadata', onReady, { once: true });
+      video.addEventListener('play', onReady, { once: true });
+    });
+
+    let ready = await waitForVideoReady(5000);
+    let sourceVideo: HTMLVideoElement = video;
+
+    if (!ready) {
+      console.warn('Video not ready, attempting fallback using hidden temporary video element. readyState:', video.readyState);
+      // Attempt fallback: create an offscreen video element and attach the same stream
+      if (streamRef.current) {
+        const tempVid = document.createElement('video');
+        tempVid.muted = true;
+        tempVid.playsInline = true;
+        tempVid.style.position = 'fixed';
+        tempVid.style.left = '-10000px';
+        tempVid.style.width = '1px';
+        tempVid.style.height = '1px';
+        tempVid.srcObject = streamRef.current;
+        document.body.appendChild(tempVid);
+
+        try {
+          await tempVid.play();
+        } catch (playErr) {
+          console.warn('tempVid.play() rejected:', playErr);
+        }
+
+        // wait briefly for canplay
+        await new Promise((res) => {
+          const onReady = () => { res(true); };
+          tempVid.addEventListener('canplay', onReady, { once: true });
+          // fallback timeout
+          setTimeout(() => res(false), 4000);
+        });
+
+        if (tempVid.readyState >= 3) {
+          console.log('Fallback temp video readyState:', tempVid.readyState);
+          ready = true;
+          sourceVideo = tempVid;
+        } else {
+          console.error('Fallback temp video not ready, readyState:', tempVid.readyState);
+        }
+
+        // proceed and ensure we clean up the temp video after capture
+        var cleanupTempVideo = () => {
+          try {
+            tempVid.pause();
+            // @ts-ignore
+            tempVid.srcObject = null;
+            tempVid.remove();
+          } catch (e) { console.warn('Error cleaning up temp video', e); }
+        };
+
+        // we'll call cleanupTempVideo after capture
+        (sourceVideo as any).__cleanupTempVideo = cleanupTempVideo;
+      }
+    }
+
+    if (!ready) {
+      console.error('Video not ready after fallback attempts, readyState:', video.readyState);
       alert('Please wait for camera to load completely');
       return;
     }
@@ -150,9 +242,9 @@ function SignupContent() {
     console.log('Capturing from video...');
     console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
     
-    const canvas = canvasRef.current || document.createElement('canvas');
-    const width = video.videoWidth || 640;
-    const height = video.videoHeight || 480;
+  const canvas = canvasRef.current || document.createElement('canvas');
+  const width = (sourceVideo.videoWidth && sourceVideo.videoWidth > 0) ? sourceVideo.videoWidth : (video.videoWidth || 640);
+  const height = (sourceVideo.videoHeight && sourceVideo.videoHeight > 0) ? sourceVideo.videoHeight : (video.videoHeight || 480);
     
     canvas.width = width;
     canvas.height = height;
@@ -163,9 +255,67 @@ function SignupContent() {
       return;
     }
     
+    // Try ImageCapture API as a fallback on some devices/browsers
+    try {
+      // If ImageCapture is available and we have a track, prefer it
+      if ((window as any).ImageCapture && streamRef.current) {
+        const [track] = streamRef.current.getVideoTracks();
+        if (track) {
+          try {
+            const ImageCaptureCtor = (window as any).ImageCapture;
+            const ic = new ImageCaptureCtor(track);
+            // try takePhoto (may not be supported) then fallback to grabFrame
+            if (ic.takePhoto) {
+              const blob = await ic.takePhoto();
+              if (blob) {
+                const file = new File([blob], `avatar_${Date.now()}.png`, { type: blob.type || 'image/png' });
+                const url = URL.createObjectURL(file);
+                setPhotoFile(file);
+                setPhotoPreview(url);
+                setPhotoSelected(true);
+                if ((sourceVideo as any).__cleanupTempVideo) {
+                  try { (sourceVideo as any).__cleanupTempVideo(); } catch (e) { console.warn(e); }
+                }
+                console.log('Capture complete via ImageCapture.takePhoto');
+                return;
+              }
+            }
+
+            // fallback to grabFrame which returns an ImageBitmap
+            if (ic.grabFrame) {
+              const bitmap = await ic.grabFrame();
+              // draw ImageBitmap to canvas
+              canvas.width = bitmap.width;
+              canvas.height = bitmap.height;
+              ctx.drawImage(bitmap as any, 0, 0);
+              // convert
+              canvas.toBlob((blob2) => {
+                if (!blob2) { console.error('Failed to create blob from bitmap'); return; }
+                const file = new File([blob2], `avatar_${Date.now()}.png`, { type: blob2.type || 'image/png' });
+                const url = URL.createObjectURL(file);
+                setPhotoFile(file);
+                setPhotoPreview(url);
+                setPhotoSelected(true);
+                if ((sourceVideo as any).__cleanupTempVideo) {
+                  try { (sourceVideo as any).__cleanupTempVideo(); } catch (e) { console.warn(e); }
+                }
+                console.log('Capture complete via ImageCapture.grabFrame');
+              }, 'image/png', 0.9);
+              return;
+            }
+          } catch (icErr) {
+            console.warn('ImageCapture failed, falling back to drawImage:', icErr);
+            // continue to drawImage fallback
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('ImageCapture path threw:', err);
+    }
+
     // Draw the video frame to canvas
     ctx.drawImage(video, 0, 0, width, height);
-    
+
     // Convert to blob and create File
     canvas.toBlob((blob) => {
       if (!blob) {
@@ -190,8 +340,13 @@ function SignupContent() {
       setPhotoPreview(url);
       setPhotoSelected(true);
       
-      // stop camera after capture
-      closeCamera();
+      // If we used a temporary video, cleanup it separately; otherwise keep camera open but stop if desired
+      if ((sourceVideo as any).__cleanupTempVideo) {
+        try { (sourceVideo as any).__cleanupTempVideo(); } catch (e) { console.warn(e); }
+      } else {
+        // keep existing stream open but optionally close camera
+        // closeCamera();
+      }
       
       console.log('Capture complete, photo state updated');
     }, 'image/png', 0.9);
@@ -257,17 +412,20 @@ function SignupContent() {
       setError('Phone number is required');
       return false;
     }
+    // Parent mobile is optional but if provided, do basic validation
+    if (formData.parent_mobile && formData.parent_mobile.trim().length < 6) {
+      setError('Parent mobile number seems invalid');
+      return false;
+    }
     
-    // Only validate password for mess members (users)
-    if (currentRole === 'user') {
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters');
-        return false;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        return false;
-      }
+    // Validate password for both members and mess owners
+    if (!formData.password || formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
     }
     
     return true;
@@ -281,26 +439,23 @@ function SignupContent() {
     setLoading(true);
     setError('');
 
-    // If a photo is selected, convert to data URL and include in metadata
-    let avatarData: string | undefined = undefined;
-    if (photoFile) {
-      avatarData = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('Failed to read image'));
-        reader.readAsDataURL(photoFile);
-      }).catch(() => undefined);
-    }
+    // Skip photo conversion for now - handle it separately if needed
+    // Photo will be null for initial signup to speed things up
+    const avatarData = undefined; // Skip photo processing to speed up signup
 
     if (currentRole === 'user') {
       // Create account with Supabase Auth
       const { error } = await signUp(formData.email, formData.password, {
         full_name: formData.full_name,
         phone: formData.phone,
+        parent_mobile: formData.parent_mobile,
+        joining_date: formData.joining_date,
         role: formData.role,
         avatar: avatarData,
         language: 'mr', // Default to Marathi
       });
+      
+      setLoading(false); // Stop loading immediately after signUp
       
       if (error) {
         // Handle specific Supabase auth errors
@@ -310,35 +465,32 @@ function SignupContent() {
           setError('Password must be at least 6 characters long.');
         } else if (error.message.includes('Invalid email')) {
           setError('Please enter a valid email address.');
-        } else if (error.message.includes('Signup requires email confirmation')) {
-          setError('Please check your email and click the confirmation link to complete registration.');
         } else {
           setError(error.message || 'Failed to create account');
         }
       } else {
-        // Show success message for email confirmation
-        alert('Registration successful! Please check your email and click the confirmation link to complete your account setup.');
+        // Registration successful - redirect to login immediately
         router.push('/login');
       }
     } else {
-      // For mess owners, create account but mark as pending admin approval
+      // For mess owners, create account
       const { error } = await signUp(formData.email, formData.password, {
         full_name: formData.full_name,
         phone: formData.phone,
+        parent_mobile: formData.parent_mobile,
         role: 'admin',
         avatar: avatarData,
         language: 'mr',
       });
       
+      setLoading(false); // Stop loading immediately
+      
       if (error) {
         setError(error.message || 'Failed to create account');
       } else {
-        alert(`Thank you ${formData.full_name}! Your mess owner registration has been submitted. Please check your email to confirm your account.`);
-        router.push('/login');
+        router.push('/login?role=admin');
       }
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -600,62 +752,95 @@ function SignupContent() {
                 </div>
               </div>
 
-              {/* Only show password fields for mess members (users) */}
-              {currentRole === 'user' && (
-                <>
-                  <div className="space-y-2">
-                    <label htmlFor="password" className="text-sm font-medium text-orange-900">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-orange-500" />
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Create a password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className="pl-10 pr-10 border-orange-200 focus:border-orange-400 focus:ring-orange-400"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 text-orange-500 hover:text-orange-700"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
+              <div className="space-y-2">
+                <label htmlFor="parent_mobile" className="text-sm font-medium text-orange-900">
+                  Parent / Guardian Mobile (optional)
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-orange-500" />
+                  <Input
+                    id="parent_mobile"
+                    name="parent_mobile"
+                    type="tel"
+                    placeholder="Enter parent or guardian mobile"
+                    value={formData.parent_mobile}
+                    onChange={handleInputChange}
+                    className="pl-10 border-orange-200 focus:border-orange-400 focus:ring-orange-400"
+                  />
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="confirmPassword" className="text-sm font-medium text-orange-900">
-                      Confirm Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-orange-500" />
-                      <Input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="Confirm your password"
-                        value={formData.confirmPassword}
-                        onChange={handleInputChange}
-                        className="pl-10 pr-10 border-orange-200 focus:border-orange-400 focus:ring-orange-400"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-3 text-orange-500 hover:text-orange-700"
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
+              <div className="space-y-2">
+                <label htmlFor="joining_date" className="text-sm font-medium text-orange-900">
+                  Joining Date (optional)
+                </label>
+                <div className="relative">
+                  <Input
+                    id="joining_date"
+                    name="joining_date"
+                    type="date"
+                    placeholder="Select joining date"
+                    value={formData.joining_date}
+                    onChange={handleInputChange}
+                    className="pl-3 border-orange-200 focus:border-orange-400 focus:ring-orange-400"
+                  />
+                </div>
+              </div>
+
+              {/* Show password fields for both members and mess owners */}
+              <>
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-medium text-orange-900">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-orange-500" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Create a password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className="pl-10 pr-10 border-orange-200 focus:border-orange-400 focus:ring-orange-400"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-3 text-orange-500 hover:text-orange-700"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
-                </>
-              )}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="confirmPassword" className="text-sm font-medium text-orange-900">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-orange-500" />
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      className="pl-10 pr-10 border-orange-200 focus:border-orange-400 focus:ring-orange-400"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-3 text-orange-500 hover:text-orange-700"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </>
 
               {/* Terms and conditions - only for mess members */}
               {currentRole === 'user' && (
@@ -706,7 +891,7 @@ function SignupContent() {
                   Sign in
                 </Link>
               </div>
-            </div>
+            </div>`
           </CardContent>
         </Card>
       </div>

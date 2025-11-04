@@ -9,7 +9,7 @@ import { ChefHat, Users, CreditCard, Calendar, Bell, Settings, LogOut, User, Glo
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { fetchMesses, createPayment, createMembership } from '@/lib/supabase';
+import { createPayment, createMembership } from '@/lib/supabase';
 
 export default function DashboardPage() {
   const { user, signOut, loading } = useAuth();
@@ -18,12 +18,40 @@ export default function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
   
-  // Subscription state (for users) - moved before early returns
-  const [messes, setMesses] = useState<any[]>([]);
-  const [selectedMess, setSelectedMess] = useState<string | null>(null);
+  // Member subscription state
+  const [memberSubscription, setMemberSubscription] = useState<any>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [showSubscribeForm, setShowSubscribeForm] = useState(false);
+  const [subscriptionMode, setSubscriptionMode] = useState<'payment' | 'request'>('payment'); // payment = pay ₹500+, request = ask admin
+  
+  // First-time subscription form state (for payment mode)
+  const [subscriptionForm, setSubscriptionForm] = useState({
+    plan: 'double_time' as 'double_time' | 'single_time' | 'half_month' | 'full_month',
+    joiningDate: new Date().toISOString().split('T')[0],
+    paymentType: 'full' as 'full' | 'advance',
+    paymentAmount: 2600
+  });
+
+  // Request approval form state (for request mode)
+  const [requestForm, setRequestForm] = useState({
+    plan: 'double_time' as 'double_time' | 'single_time' | 'half_month' | 'full_month',
+    joiningDate: new Date().toISOString().split('T')[0],
+    requestMessage: ''
+  });
+  
+  // Subscription state (for users) - simplified for single mess system
   const [selectedPlan, setSelectedPlan] = useState<'double_time' | 'single_time' | 'half_month' | 'full_month'>('double_time');
   const [joinDate, setJoinDate] = useState(new Date().toISOString().split('T')[0]);
   const [processing, setProcessing] = useState(false);
+  
+  // Single mess information - hardcoded for ओम साई भोजनालय
+  const SINGLE_MESS = {
+    id: 'om-sai-bhojanalay',
+    name: 'ओम साई भोजनालय',
+    name_en: 'Om Sai Bhojnalay',
+    address: 'Main Street, City',
+    phone: '+91-XXXXXXXXXX'
+  };
   
   // Admin member addition state
   const [showAddMember, setShowAddMember] = useState(false);
@@ -41,7 +69,19 @@ export default function DashboardPage() {
   const [addingMember, setAddingMember] = useState(false);
   
   const userRole = user?.user_metadata?.role || 'user';
-  const planPrices: Record<string, number> = { double_time: 2600, single_time: 1500, half_month: 1300, full_month: 2600 };
+  const planPrices: Record<string, number> = { 
+    double_time: 2600, 
+    single_time: 1500, 
+    half_month: 1300, 
+    full_month: 2600 
+  };
+
+  const planLabels: Record<string, string> = {
+    double_time: 'Double Time',
+    single_time: 'Single Time', 
+    half_month: 'Half Month',
+    full_month: 'Full Month'
+  };
 
   // Camera refs for member photo
   const memberVideoRef = useRef<HTMLVideoElement>(null);
@@ -152,12 +192,8 @@ export default function DashboardPage() {
       return;
     }
 
-    // Auto-assign the default mess (first available mess)
-    const defaultMessId = selectedMess || (messes.length > 0 ? messes[0].id : '');
-    if (!defaultMessId) {
-      alert('No mess available. Please ensure at least one mess is configured.');
-      return;
-    }
+    // Use the single mess system
+    const defaultMessId = SINGLE_MESS.id;
 
     setAddingMember(true);
     try {
@@ -180,24 +216,62 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      router.push('/');
     }
   }, [user, loading, router]);
 
-  // Load messes for subscription dropdown
+  // Fetch member subscription data for regular users
   useEffect(() => {
-    (async () => {
+    const fetchMemberSubscription = async () => {
+      if (userRole !== 'user' || !user?.id) {
+        setLoadingSubscription(false);
+        return;
+      }
+
       try {
-        const res = await fetchMesses();
-        if (!res.error && res.data) {
-          setMesses(res.data as any[]);
-          if ((res.data as any[]).length > 0) setSelectedMess((res.data as any[])[0].id);
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const { data, error } = await supabase
+          .from('mess_members')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching subscription:', error);
+        } else {
+          setMemberSubscription(data);
+          // If no subscription exists, show subscribe form
+          if (!data) {
+            setShowSubscribeForm(true);
+          }
         }
       } catch (err) {
-        console.error('Failed to load messes', err);
+        console.error('Error:', err);
+      } finally {
+        setLoadingSubscription(false);
       }
-    })();
-  }, []);
+    };
+
+    fetchMemberSubscription();
+  }, [user, userRole]);
+
+  // Update payment amount when plan changes in subscription form
+  useEffect(() => {
+    if (showSubscribeForm) {
+      const planPrice = planPrices[subscriptionForm.plan];
+      setSubscriptionForm(prev => ({
+        ...prev,
+        paymentAmount: prev.paymentType === 'full' ? planPrice : Math.max(500, prev.paymentAmount)
+      }));
+    }
+  }, [subscriptionForm.plan, subscriptionForm.paymentType, showSubscribeForm]);
+
+  // Note: No need to load messes since we're using a single mess system
 
   // Close language dropdown when clicking outside
   useEffect(() => {
@@ -210,8 +284,88 @@ export default function DashboardPage() {
   }, []);
 
   const handleSignOut = async () => {
+    setProcessing(true);
     await signOut();
+    // Always redirect even if there's an error (state is cleared)
     router.push('/');
+    setProcessing(false);
+  };
+
+  const handleFirstTimeSubscription = async () => {
+    if (subscriptionMode === 'payment') {
+      // PAYMENT MODE - User subscribes with minimum ₹500 payment
+      if (subscriptionForm.paymentAmount < 500) {
+        alert('Minimum payment amount is ₹500. Please enter at least ₹500.');
+        return;
+      }
+
+      const planPrice = planPrices[subscriptionForm.plan];
+      if (subscriptionForm.paymentAmount > planPrice) {
+        alert(`Payment amount cannot exceed plan price of ₹${planPrice}`);
+        return;
+      }
+
+      setProcessing(true);
+      try {
+        const response = await fetch('/api/create-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user?.id,
+            email: user?.email,
+            plan: subscriptionForm.plan,
+            joiningDate: subscriptionForm.joiningDate,
+            paymentType: subscriptionForm.paymentType,
+            paymentAmount: subscriptionForm.paymentAmount,
+            totalAmountDue: planPrice
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to create subscription');
+
+        alert('✅ Subscription created successfully!');
+        window.location.reload();
+        
+      } catch (err: any) {
+        console.error('Subscription error:', err);
+        alert(err.message || 'Failed to create subscription. Please try again.');
+      } finally {
+        setProcessing(false);
+      }
+
+    } else {
+      // REQUEST MODE - User requests admin approval (₹0 payment)
+      setProcessing(true);
+      try {
+        const response = await fetch('/api/request-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user?.id,
+            userName: user?.user_metadata?.full_name || 'Member',
+            userEmail: user?.email,
+            userPhone: user?.user_metadata?.phone || null,
+            plan: requestForm.plan,
+            joiningDate: requestForm.joiningDate,
+            message: requestForm.requestMessage || null
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to send subscription request');
+
+        alert('✅ Subscription request sent successfully!\n\nAdmin will review and approve your request. You will be notified once approved.');
+        setShowSubscribeForm(false);
+        window.location.reload();
+        
+      } catch (err: any) {
+        console.error('Subscription request error:', err);
+        alert(err.message || 'Failed to send subscription request. Please try again.');
+      } finally {
+        setProcessing(false);
+      }
+    }
   };
 
   if (loading) {
@@ -296,9 +450,15 @@ export default function DashboardPage() {
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut} className="text-gray-900 border-gray-300 hover:text-black hover:bg-red-50">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSignOut} 
+                disabled={processing}
+                className="text-gray-900 border-gray-300 hover:text-black hover:bg-red-50 disabled:opacity-50"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                {processing ? 'Signing out...' : 'Logout'}
               </Button>
             </div>
 
@@ -350,9 +510,15 @@ export default function DashboardPage() {
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut} className="w-full justify-start text-gray-900">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSignOut} 
+                disabled={processing}
+                className="w-full justify-start text-gray-900 disabled:opacity-50"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                {processing ? 'Signing out...' : 'Logout'}
               </Button>
             </div>
           )}
@@ -371,12 +537,44 @@ export default function DashboardPage() {
                 <div>
                   <h2 className="text-2xl font-bold">{t('dashboard.welcome')}!</h2>
                   <p className="text-orange-100">
-                    {user.email} • {userRole === 'admin' ? t('mess.messOwner') : t('dashboard.members')}
+                    {user.email} • {userRole === 'admin' ? 'Manage Members' : t('dashboard.members')}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Quick Actions Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-orange-900 mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button 
+              onClick={() => {
+                const paymentSection = document.getElementById('payment-section');
+                paymentSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="bg-orange-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center space-x-2"
+            >
+              <CreditCard className="h-4 w-4" />
+              <span>Pay Now</span>
+            </button>
+            <button 
+              onClick={() => window.location.href = '/menu'}
+              className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2"
+            >
+              <Calendar className="h-4 w-4" />
+              <span>View Menu</span>
+            </button>
+            <button className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2">
+              <User className="h-4 w-4" />
+              <span>Update Profile</span>
+            </button>
+            <button className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2">
+              <Bell className="h-4 w-4" />
+              <span>Contact Admin</span>
+            </button>
+          </div>
         </div>
 
         {/* Role-based Dashboard Content */}
@@ -421,26 +619,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Link href="/menu">
-              <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
-                      <Calendar className="h-6 w-6 text-orange-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-orange-900 group-hover:text-orange-700 transition-colors">Menu Planning</CardTitle>
-                      <CardDescription>Manage weekly menus</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">7</div>
-                  <p className="text-sm text-orange-700">Days Planned</p>
-                </CardContent>
-              </Card>
-            </Link>
-
             <Link href="/manage-admins">
               <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
                 <CardHeader>
@@ -457,6 +635,26 @@ export default function DashboardPage() {
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-600">2</div>
                   <p className="text-sm text-orange-700">Active Admins</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/subscription-requests">
+              <Card className="group hover:shadow-lg transition-all duration-300 border-blue-200 hover:border-blue-400 cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                      <Bell className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-blue-900 group-hover:text-blue-700 transition-colors">Subscription Requests</CardTitle>
+                      <CardDescription>Approve member subscription requests</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">🔔</div>
+                  <p className="text-sm text-blue-700">Review pending requests</p>
                 </CardContent>
               </Card>
             </Link>
@@ -488,98 +686,547 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
             </Card>
-
-            {/* Add Member Card */}
-            <Card 
-              className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer"
-              onClick={() => setShowAddMember(true)}
-            >
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
-                    <UserPlus className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-orange-900 group-hover:text-orange-700 transition-colors">Add New Member</CardTitle>
-                    <CardDescription>Add member with subscription & photo</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600">+</div>
-                <p className="text-sm text-orange-700">Click to add member</p>
-              </CardContent>
-            </Card>
           </div>
         ) : (
           /* User Dashboard */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Subscription Card - placed at the start for users */}
-            <Card className="border-orange-200">
+            {/* Payment Status Card - shows subscription form for first-time users OR current subscription */}
+            <Card id="payment-section" className="border-orange-200 md:col-span-2">
               <CardHeader>
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <CreditCard className="h-6 w-6 text-orange-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-orange-900">Subscribe / Update Plan</CardTitle>
-                    <CardDescription>Select a mess, plan and joining date</CardDescription>
+                    <CardTitle className="text-orange-900">
+                      {showSubscribeForm 
+                        ? (subscriptionMode === 'payment' ? 'Subscribe to Mess Plan' : 'Request Subscription Approval')
+                        : 'Payment Status'
+                      }
+                    </CardTitle>
+                    <CardDescription>
+                      {showSubscribeForm 
+                        ? (subscriptionMode === 'payment' 
+                            ? 'Choose your plan and make payment (₹500 minimum)' 
+                            : 'Admin will approve your subscription with ₹0 payment')
+                        : 'Your mess subscription details'
+                      }
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm text-orange-900">Plan</label>
-                    <select value={selectedPlan} onChange={(e) => setSelectedPlan(e.target.value as any)} className="w-full p-2 border border-orange-200 rounded-md">
-                      <option value="double_time">Double Time - ₹2600 / month</option>
-                      <option value="single_time">Single Time - ₹1500 / month</option>
-                      <option value="half_month">Half Month - ₹1300</option>
-                      <option value="full_month">Full Month - ₹2600</option>
-                    </select>
+                {loadingSubscription ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
+                    <p className="mt-2 text-sm text-orange-600">Loading...</p>
                   </div>
+                ) : showSubscribeForm ? (
+                  /* First-time subscription form */
+                  <div className="space-y-4">
+                    {/* Mode Toggle */}
+                    <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                      <button
+                        onClick={() => setSubscriptionMode('payment')}
+                        className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                          subscriptionMode === 'payment'
+                            ? 'bg-orange-600 text-white shadow-md'
+                            : 'bg-transparent text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        💳 Pay & Subscribe (₹500+)
+                      </button>
+                      <button
+                        onClick={() => setSubscriptionMode('request')}
+                        className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                          subscriptionMode === 'request'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-transparent text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        📨 Request Approval (₹0)
+                      </button>
+                    </div>
 
-                  <div>
-                    <label className="text-sm text-orange-900">Joining Date</label>
-                    <input type="date" value={joinDate} onChange={(e) => setJoinDate(e.target.value)} className="w-full p-2 border border-orange-200 rounded-md" />
+                    {subscriptionMode === 'payment' ? (
+                      /* PAYMENT MODE - Subscribe with ₹500+ payment */
+                      <>
+                        {/* Plan Selection */}
+                        <div>
+                          <label className="text-sm font-medium text-orange-900 mb-2 block">Select Plan *</label>
+                          <select
+                            value={subscriptionForm.plan}
+                            onChange={(e) => setSubscriptionForm(prev => ({ 
+                              ...prev, 
+                              plan: e.target.value as any 
+                            }))}
+                            className="w-full p-2.5 border border-orange-200 rounded-md focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                          >
+                            <option value="double_time">Double Time (Breakfast + Dinner) - ₹2600/month</option>
+                            <option value="full_month">Full Month (Lunch + Dinner) - ₹2600/month</option>
+                            <option value="single_time">Single Time - ₹1500/month</option>
+                            <option value="half_month">Half Month (15 Days) - ₹1300</option>
+                          </select>
+                        </div>
+
+                        {/* Joining Date */}
+                        <div>
+                          <label className="text-sm font-medium text-orange-900 mb-2 block">Joining Date *</label>
+                          <Input
+                            type="date"
+                            value={subscriptionForm.joiningDate}
+                            onChange={(e) => setSubscriptionForm(prev => ({ 
+                              ...prev, 
+                              joiningDate: e.target.value 
+                            }))}
+                            className="border-orange-200 focus:border-orange-400"
+                          />
+                        </div>
+
+                        {/* Payment Type */}
+                        <div>
+                          <label className="text-sm font-medium text-orange-900 mb-2 block">Payment Type *</label>
+                          <select
+                            value={subscriptionForm.paymentType}
+                            onChange={(e) => {
+                              const type = e.target.value as 'full' | 'advance';
+                              const planPrice = planPrices[subscriptionForm.plan];
+                              setSubscriptionForm(prev => ({
+                                ...prev,
+                                paymentType: type,
+                                paymentAmount: type === 'full' ? planPrice : 500
+                              }));
+                            }}
+                            className="w-full p-2.5 border border-orange-200 rounded-md focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                          >
+                            <option value="full">Full Payment</option>
+                            <option value="advance">Advance Payment</option>
+                          </select>
+                        </div>
+
+                        {/* Payment Amount */}
+                        <div>
+                          <label className="text-sm font-medium text-orange-900 mb-2 block">
+                            Payment Amount * <span className="text-xs text-red-600">(Minimum ₹500)</span>
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-2.5 text-orange-700 font-medium">₹</span>
+                            <Input
+                              type="number"
+                              value={subscriptionForm.paymentAmount}
+                              onChange={(e) => {
+                                const amount = Number(e.target.value);
+                                if (amount >= 500) {
+                                  setSubscriptionForm(prev => ({ 
+                                    ...prev, 
+                                    paymentAmount: amount 
+                                  }));
+                                }
+                              }}
+                              min="500"
+                              max={planPrices[subscriptionForm.plan]}
+                              disabled={subscriptionForm.paymentType === 'full'}
+                              className="pl-8 border-orange-200 focus:border-orange-400"
+                            />
+                          </div>
+                          <p className="text-xs text-orange-600 mt-1">
+                            {subscriptionForm.paymentType === 'full' 
+                              ? `Full payment of ₹${planPrices[subscriptionForm.plan]}`
+                              : `Plan total: ₹${planPrices[subscriptionForm.plan]}. Minimum ₹500 advance required.`
+                            }
+                          </p>
+                        </div>
+
+                        {/* Summary */}
+                        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                          <h4 className="text-sm font-medium text-orange-900 mb-2">Subscription Summary</h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-orange-700">Plan:</span>
+                              <span className="text-sm font-bold text-orange-900">{planLabels[subscriptionForm.plan]}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-orange-700">Total Amount:</span>
+                              <span className="text-lg font-bold text-orange-600">₹{planPrices[subscriptionForm.plan]}</span>
+                            </div>
+                            {subscriptionForm.paymentType === 'advance' && subscriptionForm.paymentAmount < planPrices[subscriptionForm.plan] && (
+                              <>
+                                <div className="flex justify-between pt-2 border-t border-orange-200">
+                                  <span className="text-sm text-purple-700">Paying Now:</span>
+                                  <span className="text-lg font-bold text-purple-600">₹{subscriptionForm.paymentAmount}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-red-700">Remaining:</span>
+                                  <span className="text-lg font-bold text-red-600">
+                                    ₹{planPrices[subscriptionForm.plan] - subscriptionForm.paymentAmount}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Subscribe Button */}
+                        <Button
+                          onClick={handleFirstTimeSubscription}
+                          disabled={processing || subscriptionForm.paymentAmount < 500}
+                          className="w-full bg-orange-600 hover:bg-orange-700 h-12 text-lg"
+                        >
+                          {processing ? 'Processing...' : `Subscribe Now - Pay ₹${subscriptionForm.paymentAmount}`}
+                        </Button>
+                      </>
+                    ) : (
+                      /* REQUEST MODE - Request admin approval (₹0) */
+                      <>
+                        {/* Plan Selection */}
+                        <div>
+                          <label className="text-sm font-medium text-orange-900 mb-2 block">Select Plan *</label>
+                          <select
+                            value={requestForm.plan}
+                            onChange={(e) => setRequestForm(prev => ({ 
+                              ...prev, 
+                              plan: e.target.value as any 
+                            }))}
+                            className="w-full p-2.5 border border-orange-200 rounded-md focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                          >
+                            <option value="double_time">Double Time (Breakfast + Dinner) - ₹2600/month</option>
+                            <option value="full_month">Full Month (Lunch + Dinner) - ₹2600/month</option>
+                            <option value="single_time">Single Time - ₹1500/month</option>
+                            <option value="half_month">Half Month (15 Days) - ₹1300</option>
+                          </select>
+                        </div>
+
+                        {/* Joining Date */}
+                        <div>
+                          <label className="text-sm font-medium text-orange-900 mb-2 block">Preferred Joining Date *</label>
+                          <Input
+                            type="date"
+                            value={requestForm.joiningDate}
+                            onChange={(e) => setRequestForm(prev => ({ 
+                              ...prev, 
+                              joiningDate: e.target.value 
+                            }))}
+                            className="border-orange-200 focus:border-orange-400"
+                          />
+                        </div>
+
+                        {/* Optional Message to Admin */}
+                        <div>
+                          <label className="text-sm font-medium text-orange-900 mb-2 block">Message to Admin (Optional)</label>
+                          <textarea
+                            value={requestForm.requestMessage}
+                            onChange={(e) => setRequestForm(prev => ({ 
+                              ...prev, 
+                              requestMessage: e.target.value 
+                            }))}
+                            placeholder="Explain why you need admin approval..."
+                            rows={3}
+                            className="w-full p-2.5 border border-orange-200 rounded-md focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                          />
+                        </div>
+
+                        {/* Info Box */}
+                        <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                          <div className="flex items-start space-x-3">
+                            <Bell className="h-5 w-5 text-blue-600 mt-0.5" />
+                            <div>
+                              <h4 className="text-sm font-bold text-blue-900 mb-1">How This Works</h4>
+                              <ul className="text-xs text-blue-700 space-y-1">
+                                <li>• Your request will be sent to the admin</li>
+                                <li>• Admin will review and approve your subscription</li>
+                                <li>• You will get <strong>FREE access</strong> (₹0 payment required)</li>
+                                <li>• You'll be notified once approved</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Request Button */}
+                        <Button
+                          onClick={handleFirstTimeSubscription}
+                          disabled={processing}
+                          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 h-12 text-lg"
+                        >
+                          {processing ? 'Sending Request...' : '📨 Send Approval Request to Admin'}
+                        </Button>
+
+                        <p className="text-xs text-center text-gray-500">
+                          No payment required. Admin will approve with ₹0 fee.
+                        </p>
+                      </>
+                    )}
                   </div>
+                ) : memberSubscription ? (
+                  <div className="space-y-4">
+                    {/* Subscription Info */}
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-medium text-orange-700">Plan</label>
+                          <p className="text-sm font-bold text-orange-900 capitalize">
+                            {memberSubscription.subscription_type?.replace(/_/g, ' ')}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-orange-700">Joining Date</label>
+                          <p className="text-sm font-medium text-gray-900">
+                            {new Date(memberSubscription.joining_date).toLocaleDateString('en-IN')}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-orange-700">Expiry Date</label>
+                          <p className="text-sm font-medium text-gray-900">
+                            {memberSubscription.expiry_date 
+                              ? new Date(memberSubscription.expiry_date).toLocaleDateString('en-IN')
+                              : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-orange-700">Status</label>
+                          <p className={`text-sm font-bold ${
+                            memberSubscription.payment_status === 'success' ? 'text-green-600' :
+                            memberSubscription.payment_status === 'due' ? 'text-red-600' :
+                            'text-purple-600'
+                          }`}>
+                            {memberSubscription.payment_status === 'success' ? '✓ ACTIVE - PAID' :
+                             memberSubscription.payment_status === 'due' ? '✗ INACTIVE - UNPAID' :
+                             '⚡ ADVANCE PAID - NOT SETTLED'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="text-lg font-bold text-orange-700">Amount: ₹{planPrices[selectedPlan]}</div>
+                    {/* Payment Details */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white p-4 rounded-lg border border-orange-200">
+                        <label className="text-xs font-medium text-orange-700">Total Amount</label>
+                        <p className="text-2xl font-bold text-orange-600">
+                          ₹{memberSubscription.total_amount_due || 0}
+                        </p>
+                      </div>
+                      
+                      {memberSubscription.payment_status === 'pending' && (
+                        <>
+                          <div className="bg-white p-4 rounded-lg border border-purple-200">
+                            <label className="text-xs font-medium text-purple-700">Paid Amount</label>
+                            <p className="text-2xl font-bold text-purple-600">
+                              ₹{memberSubscription.advance_payment || 0}
+                            </p>
+                          </div>
+                          <div className="bg-white p-4 rounded-lg border border-red-200 col-span-2">
+                            <label className="text-xs font-medium text-red-700">Remaining Amount</label>
+                            <p className="text-3xl font-bold text-red-600">
+                              ₹{(memberSubscription.total_amount_due || 0) - (memberSubscription.advance_payment || 0)}
+                            </p>
+                          </div>
+                        </>
+                      )}
 
-                  <div className="flex space-x-2">
-                    <Button className="bg-orange-600 hover:bg-orange-700" onClick={async () => {
-                      if (!selectedMess) { alert('No mess available. Please contact admin.'); return; }
-                      setProcessing(true);
-                      try {
-                        // Simulate payment then create payment & membership
-                        const amount = planPrices[selectedPlan];
-                        const userId = user?.id as string;
-                        const payRes = await createPayment(userId, selectedMess, amount, selectedPlan);
-                        if (payRes.error) throw payRes.error;
+                      {memberSubscription.payment_status === 'due' && (
+                        <div className="bg-white p-4 rounded-lg border border-red-200 col-span-2">
+                          <label className="text-xs font-medium text-red-700">Amount Due</label>
+                          <p className="text-3xl font-bold text-red-600">
+                            ₹{memberSubscription.total_amount_due || 0}
+                          </p>
+                        </div>
+                      )}
+                    </div>
 
-                        // calculate expiry: if half_month take ~15 days else 30 days
-                        const join = new Date(joinDate);
-                        const expiry = new Date(join.getTime());
-                        if (selectedPlan === 'half_month') expiry.setDate(expiry.getDate() + 15);
-                        else expiry.setMonth(expiry.getMonth() + 1);
-
-                        const memRes = await createMembership(userId, selectedMess, selectedPlan, joinDate, expiry.toISOString().split('T')[0]);
-                        if (memRes.error) throw memRes.error;
-
-                        alert('Subscription successful!');
-                      } catch (err) {
-                        console.error(err);
-                        alert('Subscription failed (see console)');
-                      } finally {
-                        setProcessing(false);
-                      }
-                    }} disabled={processing}>
-                      {processing ? 'Processing...' : 'Subscribe'}
-                    </Button>
+                    {/* Success message for fully paid */}
+                    {memberSubscription.payment_status === 'success' && (
+                      <div className="bg-green-50 p-4 rounded-lg border-2 border-green-200 text-center mt-4">
+                        <p className="text-green-700 font-bold text-lg">✓ Payment Complete</p>
+                        <p className="text-sm text-green-600 mt-1">Your subscription is active</p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <User className="h-12 w-12 text-orange-300 mx-auto mb-4" />
+                    <p className="text-orange-600 font-medium text-lg mb-2">No active subscription</p>
+                    <p className="text-sm text-gray-600 mb-6">Choose how you want to get started</p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button
+                        onClick={() => {
+                          setSubscriptionMode('payment');
+                          setShowSubscribeForm(true);
+                        }}
+                        className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white"
+                      >
+                        💳 Pay & Subscribe (₹500+)
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setSubscriptionMode('request');
+                          setShowSubscribeForm(true);
+                        }}
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                      >
+                        📨 Request Admin Approval (Free)
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
+
+            {/* Make Payment Card - Only show if user has subscription with pending/due payment */}
+            {memberSubscription && (memberSubscription.payment_status === 'pending' || memberSubscription.payment_status === 'due') && (
+              <Card className="border-orange-200 md:col-span-2">
+                <CardHeader>
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <CreditCard className="h-6 w-6 text-orange-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-orange-900">Make Payment</CardTitle>
+                      <CardDescription>Pay your remaining balance</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Payment Summary */}
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                      <h4 className="text-sm font-medium text-orange-900 mb-3">Payment Summary</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-orange-700">Plan:</span>
+                          <span className="text-sm font-bold text-orange-900 capitalize">
+                            {memberSubscription.subscription_type?.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-orange-700">Total Amount:</span>
+                          <span className="text-lg font-bold text-orange-600">
+                            ₹{memberSubscription.total_amount_due || 0}
+                          </span>
+                        </div>
+                        {memberSubscription.payment_status === 'pending' && (
+                          <>
+                            <div className="flex justify-between pt-2 border-t border-orange-200">
+                              <span className="text-sm text-purple-700">Already Paid:</span>
+                              <span className="text-lg font-bold text-purple-600">
+                                ₹{memberSubscription.advance_payment || 0}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-red-700">Remaining Balance:</span>
+                              <span className="text-2xl font-bold text-red-600">
+                                ₹{(memberSubscription.total_amount_due || 0) - (memberSubscription.advance_payment || 0)}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Payment Amount Input */}
+                    <div>
+                      <label className="text-sm font-medium text-orange-900 mb-2 block">
+                        Payment Amount *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-3 text-orange-700 font-medium">₹</span>
+                        <Input
+                          type="number"
+                          value={
+                            memberSubscription.payment_status === 'pending'
+                              ? (memberSubscription.total_amount_due || 0) - (memberSubscription.advance_payment || 0)
+                              : memberSubscription.total_amount_due || 0
+                          }
+                          disabled
+                          className="pl-8 border-orange-200 bg-gray-50 font-bold text-lg"
+                        />
+                      </div>
+                      <p className="text-xs text-orange-600 mt-1">
+                        {memberSubscription.payment_status === 'pending'
+                          ? 'Complete your remaining payment'
+                          : 'Pay the full amount to activate your subscription'
+                        }
+                      </p>
+                    </div>
+
+                    {/* Payment Method Info */}
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div className="flex items-start space-x-3">
+                        <CreditCard className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Payment via PhonePe</p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            You will be redirected to PhonePe to complete your payment securely.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pay Now Button */}
+                    <Button
+                      onClick={async () => {
+                        const remainingAmount = memberSubscription.payment_status === 'pending'
+                          ? (memberSubscription.total_amount_due || 0) - (memberSubscription.advance_payment || 0)
+                          : memberSubscription.total_amount_due || 0;
+
+                        if (remainingAmount <= 0) {
+                          alert('No payment due');
+                          return;
+                        }
+
+                        setProcessing(true);
+                        try {
+                          const userId = user?.id as string;
+                          const userEmail = user?.email || '';
+                          const userName = user?.user_metadata?.full_name || 'User';
+
+                          // Create payment order through PhonePe
+                          const paymentResponse = await fetch('/api/create-payment', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              amount: remainingAmount,
+                              userId: userId,
+                              planType: memberSubscription.subscription_type,
+                              userEmail: userEmail,
+                              userName: userName,
+                            }),
+                          });
+
+                          const paymentData = await paymentResponse.json();
+
+                          if (paymentData.success && paymentData.paymentUrl) {
+                            localStorage.setItem('pendingPayment', JSON.stringify({
+                              transactionId: paymentData.transactionId,
+                              amount: remainingAmount,
+                              planType: memberSubscription.subscription_type,
+                              userId: userId
+                            }));
+
+                            window.location.href = paymentData.paymentUrl;
+                          } else {
+                            throw new Error(paymentData.error || 'Failed to create payment');
+                          }
+                        } catch (err) {
+                          console.error('Payment initiation error:', err);
+                          alert('Failed to initiate payment. Please try again.');
+                        } finally {
+                          setProcessing(false);
+                        }
+                      }}
+                      disabled={processing}
+                      className="w-full bg-orange-600 hover:bg-orange-700 h-14 text-lg font-bold"
+                    >
+                      {processing ? 'Processing Payment...' : `Pay Now - ₹${
+                        memberSubscription.payment_status === 'pending'
+                          ? (memberSubscription.total_amount_due || 0) - (memberSubscription.advance_payment || 0)
+                          : memberSubscription.total_amount_due || 0
+                      }`}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Link href="/menu">
               <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
@@ -602,24 +1249,6 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </Link>
-
-            <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <CreditCard className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-orange-900">Payment Status</CardTitle>
-                    <CardDescription>Your payment information</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">Paid</div>
-                <p className="text-sm text-orange-700">Valid until Dec 31, 2025</p>
-              </CardContent>
-            </Card>
 
             <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
               <CardHeader>

@@ -2,7 +2,7 @@
 
 :root {
   --background: #fefefe;
-  --foreground: #2d1b0e;
+  --foreground: #000000; /* use true black for maximum contrast */
   --primary: #ea580c;
   --primary-foreground: #ffffff;
   --secondary: #fed7aa;
@@ -12,7 +12,7 @@
   --muted: #fef3c7;
   --muted-foreground: #a16207;
   --card: #ffffff;
-  --card-foreground: #2d1b0e;
+  --card-foreground: #000000;
   --border: #fde68a;
   --input: #fef3c7;
 }
@@ -61,13 +61,28 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Ensure form fields and interactive controls use high-contrast text */
+input, select, textarea, button {
+  color: #000000;
+}
+
+select option {
+  color: #000000; /* ensure native option text is dark */
+}
+
+/* Make placeholders readable */
+input::placeholder, textarea::placeholder {
+  color: #6b7280; /* gray-500 */
+  opacity: 1;
+}
+
 /* Ensure text visibility by default */
 .text-muted {
-  color: #4b5563 !important; /* gray-600 instead of very light gray */
+  color: #111827 !important; /* darker gray (gray-900/800) for readability */
 }
 
 .text-muted-foreground {
-  color: #6b7280 !important; /* gray-500 instead of very light gray */
+  color: #374151 !important; /* gray-700 for secondary text */
 }
 
 .food-gradient {

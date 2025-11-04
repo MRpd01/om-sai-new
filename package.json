@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+  "create-admin": "node scripts/create-admin.js",
     "build": "next build", 
     "start": "next start",
     "lint": "eslint"

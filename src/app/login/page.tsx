@@ -60,24 +60,33 @@ function LoginContent() {
     setLoading(true);
     setError('');
 
-    const { error } = await signIn(email, password);
-    
-    if (error) {
-      // Handle specific Supabase auth errors
-      if (error.message === 'Invalid login credentials') {
-        setError('Invalid email or password. Please check your credentials.');
-      } else if (error.message.includes('Email not confirmed')) {
-        setError('Please check your email and click the confirmation link before signing in.');
-      } else if (error.message.includes('Too many requests')) {
-        setError('Too many login attempts. Please try again later.');
+    try {
+      // Await sign in without an artificial timeout so real errors surface in UI
+      const { error } = await signIn(email, password);
+      
+  if (error) {
+        // Handle specific Supabase auth errors
+        if (error.message === 'Invalid login credentials') {
+          setError('Invalid email or password. Please check your credentials.');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Please check your email and click the confirmation link before signing in.');
+        } else if (error.message.includes('Too many requests')) {
+          setError('Too many login attempts. Please try again later.');
+        } else if (error.message.includes('timeout')) {
+          setError('Connection timeout. Please check your internet and try again.');
+        } else {
+          setError(error.message || 'Failed to sign in');
+        }
+        setLoading(false);
       } else {
-        setError(error.message || 'Failed to sign in');
+        // Redirect to home (landing) after successful login
+        router.push('/');
       }
-    } else {
-      router.push('/dashboard');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An unexpected error occurred. Please try again.');
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -179,12 +188,19 @@ function LoginContent() {
                 </Link>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+              <Button 
+                type="submit" 
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white" 
                 disabled={loading}
               >
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Signing in...
+                  </div>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </form>
 

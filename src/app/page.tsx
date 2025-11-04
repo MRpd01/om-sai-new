@@ -33,8 +33,8 @@ export default function Home() {
   }> = {
     en: {
       title: "Welcome to OM Sai Bhojnalay",
-      subtitle: "Your Complete Mess Management Solution",
-      description: "Streamline your mess operations with digital payments, member management, menu planning, and multi-language support. Perfect for mess owners and members alike.",
+      subtitle: "Powerful Mess Management for Owners",
+      description: "Run your mess like a business — manage subscriptions, staff, menus and payments from a single dashboard. Built for mess owners to simplify operations and grow revenue.",
       signIn: "Sign In",
       signUp: "Sign Up",
       memberSignIn: "Sign In as Member",
@@ -48,8 +48,8 @@ export default function Home() {
     },
     mr: {
       title: "ओम साई भोजनालयात स्वागत आहे",
-      subtitle: "तुमचा संपूर्ण मेस व्यवस्थापन समाधान",
-      description: "डिजिटल पेमेंट, सदस्य व्यवस्थापन, मेनू नियोजन आणि बहुभाषिक समर्थनासह तुमच्या मेसचे कामकाज सुव्यवस्थित करा. मेस मालक आणि सदस्यांसाठी परिपूर्ण.",
+      subtitle: "मालकांसाठी सामर्थ्यशाली मेस व्यवस्थापन",
+      description: "तुमचे मेस व्यावसायिक दृष्टिकोनातून चालवा — सदस्यता, कर्मचारी, मेनू आणि पेमेंट्स एका डॅशबोर्डवर व्यवस्थापित करा. मेस मालकांसाठी ऑपरेशन्स सुलभ करण्यासाठी आणि महसूल वाढविण्यासाठी तयार केलेले.",
       signIn: "साइन इन",
       signUp: "साइन अप",
       memberSignIn: "सदस्य म्हणून साइन इन",
@@ -321,23 +321,31 @@ export default function Home() {
                 /* Not Logged In - Show Auth Buttons */
                 <>
                   {/* Sign In Dropdown */}
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <Button
                       variant="ghost"
                       className="text-orange-700 hover:text-orange-900 hover:bg-orange-100"
+                      onClick={() => router.push('/login?role=user')}
+                    >
+                      <LogIn className="h-4 w-4 mr-2" />
+                      {content[language].signIn}
+                    </Button>
+
+                    {/* small chevron to open dropdown for role choices */}
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsSignInDropdownOpen(!isSignInDropdownOpen);
                         setIsSignUpDropdownOpen(false);
                       }}
+                      className="ml-1 p-2 rounded hover:bg-orange-100"
+                      aria-label="Open sign in options"
                     >
-                      <LogIn className="h-4 w-4 mr-2" />
-                      {content[language].signIn}
-                      <ChevronDown className="h-3 w-3 ml-1" />
-                    </Button>
+                      <ChevronDown className="h-3 w-3 text-orange-600" />
+                    </button>
 
                     {isSignInDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-20 border border-orange-200">
+                      <div className="absolute right-0 mt-10 md:mt-8 w-56 bg-white rounded-lg shadow-lg py-2 z-20 border border-orange-200">
                         <button
                           onClick={() => {
                             router.push('/login?role=user');
@@ -369,22 +377,29 @@ export default function Home() {
                   </div>
 
                   {/* Sign Up Dropdown */}
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <Button
                       className="bg-orange-600 hover:bg-orange-700 text-white"
+                      onClick={() => router.push('/signup?role=user')}
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      {content[language].signUp}
+                    </Button>
+
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsSignUpDropdownOpen(!isSignUpDropdownOpen);
                         setIsSignInDropdownOpen(false);
                       }}
+                      className="ml-1 p-2 rounded hover:bg-orange-100"
+                      aria-label="Open sign up options"
                     >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      {content[language].signUp}
-                      <ChevronDown className="h-3 w-3 ml-1" />
-                    </Button>
+                      <ChevronDown className="h-3 w-3 text-white" />
+                    </button>
 
                     {isSignUpDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-20 border border-orange-200">
+                      <div className="absolute right-0 mt-10 md:mt-8 w-56 bg-white rounded-lg shadow-lg py-2 z-20 border border-orange-200">
                         <button
                           onClick={() => {
                             router.push('/signup?role=user');
@@ -697,24 +712,37 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center px-4">
-              <Button
-                onClick={() => router.push('/signup?role=user')}
-                size="lg"
-                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-xl transition-all"
-              >
-                <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
-                {content[language].memberSignUp}
-              </Button>
-              
-              <Button
-                onClick={() => router.push('/signup?role=admin')}
-                size="lg"
-                variant="outline"
-                className="border-2 border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-xl transition-all"
-              >
-                <ChefHat className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
-                {content[language].ownerSignUp}
-              </Button>
+              {/* Hide sign-up buttons when user is already signed in */}
+              {!loading && !user ? (
+                <>
+                  <Button
+                    onClick={() => router.push('/signup?role=user')}
+                    size="lg"
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
+                    {content[language].getStarted}
+                  </Button>
+                  
+                  <Button
+                    onClick={() => router.push('/signup?role=admin')}
+                    size="lg"
+                    variant="outline"
+                    className="border-2 border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <ChefHat className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
+                    {content[language].ownerSignUp}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={() => router.push('/dashboard')}
+                  size="lg"
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-xl transition-all"
+                >
+                  {language === 'en' ? 'Go to Dashboard' : 'डॅशबोर्ड वर जा'}
+                </Button>
+              )}
             </div>
 
             <div className="mt-6 sm:mt-8">
@@ -799,14 +827,14 @@ export default function Home() {
               <div className="max-w-4xl mx-auto text-lg text-orange-700 leading-relaxed">
                 <p className="mb-6">
                   {language === 'en' 
-                    ? 'OM Sai Bhojnalay is designed to revolutionize mess management by providing a comprehensive digital solution for both mess owners and members. Our platform streamlines operations, reduces paperwork, and enhances communication.'
-                    : 'ओम साई भोजनालय मेस मालक आणि सदस्य दोघांसाठी एक व्यापक डिजिटल समाधान प्रदान करून मेस व्यवस्थापनात क्रांती घडवून आणण्यासाठी डिझाइन केले गेले आहे. आमचे प्लॅटफॉर्म ऑपरेशन्स सुव्यवस्थित करते, कागदी कामे कमी करते आणि संवाद वाढवते.'
+                    ? 'Om Sai Bhojnalay is the official digital dashboard for this mess. The site is used by the mess owner to manage day-to-day operations — member subscriptions, menu planning, staff assignments, and payments. This dashboard reflects live data for this mess only.'
+                    : 'ओम साई भोजनालय हा या मेससाठी अधिकृत डिजिटल डॅशबोर्ड आहे. हा साइट मेस मालकाद्वारे दैनंदिन ऑपरेशन्स — सदस्यता, मेनू नियोजन, कर्मचारी नेमणूक आणि पेमेंट्स व्यवस्थापित करण्यासाठी वापरला जातो. हा डॅशबोर्ड फक्त या मेसचे प्रत्यक्ष डेटा दर्शवितो.'
                   }
                 </p>
                 <p>
                   {language === 'en' 
-                    ? 'Whether you\'re a mess owner looking to digitize your operations or a member seeking convenient access to mess services, OM Sai Bhojnalay provides the tools you need for a seamless experience.'
-                    : 'तुम्ही तुमच्या ऑपरेशन्सचे डिजिटायझेशन करू इच्छिणारे मेस मालक असाल किंवा मेस सेवांमध्ये सोयीस्कर प्रवेश शोधणारे सदस्य असाल, ओम साई भोजनालय तुम्हाला अखंड अनुभवासाठी आवश्यक साधने प्रदान करते.'
+                    ? 'All features are configured and maintained by the mess owner. Members can view menus and manage subscriptions as provided by the owner. For support or inquiries about this mess, please use the contact details in the footer.'
+                    : 'सर्व वैशिष्ट्ये मेस मालकाद्वारे कॉन्फिगर आणि व्यवस्थापित केली जातात. सदस्य मालकाद्वारे उपलब्ध केलेल्या मेनू पाहू शकतात आणि सदस्यत्व व्यवस्थापित करू शकतात. या मेसबद्दल मदत किंवा चौकशीसाठी कृपया फूटर्समध्ये दिलेले संपर्क तपशील वापरा.'
                   }
                 </p>
               </div>
@@ -906,9 +934,19 @@ export default function Home() {
                 : 'मेस व्यवस्थापन समाधानांसाठी तुमचा विश्वसनीय भागीदार'
               }
             </p>
-            <p className="text-orange-300 text-sm">
-              © 2025 ओम साई भोजनालय. {language === 'en' ? 'All rights reserved.' : 'सर्व हक्क राखीव.'}
-            </p>
+
+            {/* New copyright and contact info */}
+            <div className="text-orange-300 text-sm space-y-1">
+              <div>© 2025 ओम साई भोजनालय. All rights reserved.</div>
+              <div>Developed by MIT students: Pramod Dwarkunde &amp; Mohan Birajdar</div>
+              <div className="text-xs">
+                Pramod: <a href="mailto:pramodkd023@gmail.com" className="underline hover:text-white">pramodkd023@gmail.com</a> • Mohan: <a href="mailto:mohanbirajdar@gmail.com" className="underline hover:text-white">mohanbirajdar@gmail.com</a>
+              </div>
+
+              <div className="pt-2 text-sm text-orange-200">
+                Services: Software development, Product design, Custom software solutions, Mobile &amp; Web apps, Payment integration, DevOps &amp; Consultancy
+              </div>
+            </div>
           </div>
         </div>
       </footer>
