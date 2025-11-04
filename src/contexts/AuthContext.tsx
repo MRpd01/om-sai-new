@@ -154,45 +154,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Create user profile in our users table
   const createUserProfile = async (user: User) => {
     try {
-      console.log('Creating/updating user profile for:', user.id);
+      console.log('Creating/updating user profile for:', {
+        userId: user.id,
+        email: user.email,
+        metadata: user.user_metadata
+      });
       
+      const profileData = {
+        id: user.id,
+        // Follow DB column names: name, email, mobile_number, parent_mobile, photo_url
+        name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+        email: user.email || '',
+        mobile_number: user.user_metadata?.phone || '',
+        parent_mobile: user.user_metadata?.parent_mobile || null,
+        photo_url: user.user_metadata?.avatar || null,
+        role: user.user_metadata?.role || 'user',
+        mess_id: user.user_metadata?.mess_id || null,
+      };
+
+      console.log('Attempting to upsert profile data:', profileData);
+
       // Use upsert to handle both insert and update cases
       const { data, error } = await supabase
         .from('users')
-        .upsert(
-          {
-            id: user.id,
-            // Follow DB column names: name, email, mobile_number, parent_mobile, photo_url
-            name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-            email: user.email || '',
-            mobile_number: user.user_metadata?.phone || '',
-            parent_mobile: user.user_metadata?.parent_mobile || null,
-            photo_url: user.user_metadata?.avatar || null,
-            role: user.user_metadata?.role || 'user',
-            mess_id: user.user_metadata?.mess_id || null,
-          },
-          {
-            onConflict: 'id',
-            ignoreDuplicates: false // Update if exists
-          }
-        )
+        .upsert(profileData, {
+          onConflict: 'id',
+          ignoreDuplicates: false // Update if exists
+        })
         .select()
         .single();
 
       if (error) {
-        console.error('Error upserting user profile:', {
-          error,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          userId: user.id
-        });
+        // Check if error is empty object (RLS policy issue)
+        const errorKeys = Object.keys(error);
+        if (errorKeys.length === 0) {
+          console.error('⚠️ Empty error object - likely RLS policy blocking operation', {
+            userId: user.id,
+            operation: 'upsert users table'
+          });
+          // Try to insert without upsert to get more specific error
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert(profileData)
+            .select()
+            .single();
+          
+          if (insertError) {
+            console.error('Insert attempt error:', insertError);
+          }
+        } else {
+          console.error('Error upserting user profile:', {
+            error,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            userId: user.id
+          });
+        }
       } else {
-        console.log('User profile upserted successfully:', data);
+        console.log('✅ User profile upserted successfully:', data);
       }
     } catch (error: any) {
-      console.error('Exception while upserting user profile:', {
+      console.error('❌ Exception while upserting user profile:', {
         error,
         message: error?.message,
         userId: user.id,
