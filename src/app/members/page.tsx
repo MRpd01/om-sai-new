@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -47,7 +47,7 @@ const planLabels: Record<SubscriptionType, string> = {
   double_time: 'Double Time',
 };
 
-export default function MembersPage() {
+function MembersContent() {
   const { user, session, loading } = useAuth();
   const { language, t } = useLanguage();
   const router = useRouter();
@@ -1087,5 +1087,20 @@ export default function MembersPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function MembersPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="mt-4 text-orange-700">Loading members...</p>
+        </div>
+      </div>
+    }>
+      <MembersContent />
+    </Suspense>
   );
 }
