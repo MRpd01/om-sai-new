@@ -935,7 +935,26 @@ export default function Home() {
               }
             </p>
 
-            {/* New copyright and contact info */}
+            {/* Mess Owner Contact */}
+            <div className="mb-6 pb-6 border-b border-orange-700">
+              <div className="text-orange-100 font-semibold text-base mb-2">
+                {language === 'en' ? 'Contact Mess Owner' : 'मेस मालकाशी संपर्क साधा'}
+              </div>
+              <a 
+                href="mailto:usha011993@gmail.com" 
+                className="text-orange-200 hover:text-white underline text-lg font-medium transition-colors"
+              >
+                usha011993@gmail.com
+              </a>
+              <div className="text-orange-300 text-sm mt-1">
+                {language === 'en' 
+                  ? 'For inquiries about meals, subscriptions, or any mess-related questions'
+                  : 'जेवण, सबस्क्रिप्शन किंवा कोणत्याही मेस संबंधित प्रश्नांसाठी'
+                }
+              </div>
+            </div>
+
+            {/* Developer copyright and contact info */}
             <div className="text-orange-300 text-sm space-y-1">
               <div>© 2025 ओम साई भोजनालय. All rights reserved.</div>
               <div>Developed by MIT students: Pramod Dwarkunde &amp; Mohan Birajdar</div>
