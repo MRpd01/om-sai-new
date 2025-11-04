@@ -154,14 +154,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Create user profile in our users table
   const createUserProfile = async (user: User) => {
     try {
+      console.log('Creating/updating user profile for:', user.id);
+      
       // Use upsert to handle both insert and update cases
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('users')
         .upsert(
           {
             id: user.id,
             // Follow DB column names: name, email, mobile_number, parent_mobile, photo_url
-            name: user.user_metadata?.full_name || '',
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
             email: user.email || '',
             mobile_number: user.user_metadata?.phone || '',
             parent_mobile: user.user_metadata?.parent_mobile || null,
@@ -173,13 +175,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             onConflict: 'id',
             ignoreDuplicates: false // Update if exists
           }
-        );
+        )
+        .select()
+        .single();
 
       if (error) {
-        console.error('Error upserting user profile:', error);
+        console.error('Error upserting user profile:', {
+          error,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          userId: user.id
+        });
+      } else {
+        console.log('User profile upserted successfully:', data);
       }
-    } catch (error) {
-      console.error('Error upserting user profile:', error);
+    } catch (error: any) {
+      console.error('Exception while upserting user profile:', {
+        error,
+        message: error?.message,
+        userId: user.id,
+        stack: error?.stack
+      });
     }
   };
 
