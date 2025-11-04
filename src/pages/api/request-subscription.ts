@@ -15,6 +15,9 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Set JSON content type header
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -30,8 +33,17 @@ export default async function handler(
       message
     } = req.body;
 
+    console.log('Request subscription API called with:', {
+      userId,
+      userName,
+      userEmail,
+      plan,
+      joiningDate
+    });
+
     // Validation
     if (!userId || !userName || !userEmail || !plan || !joiningDate) {
+      console.error('Missing required fields:', { userId, userName, userEmail, plan, joiningDate });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -43,8 +55,11 @@ export default async function handler(
       .single();
 
     if (userError || !userData?.mess_id) {
+      console.error('User not found or not assigned to mess:', userError);
       return res.status(404).json({ error: 'User not found or not assigned to a mess' });
     }
+
+    console.log('User mess_id:', userData.mess_id);
 
     // Check if user already has a subscription
     const { data: existingSubscription } = await supabase
@@ -55,8 +70,11 @@ export default async function handler(
       .single();
 
     if (existingSubscription) {
+      console.log('User already has subscription:', existingSubscription);
       return res.status(400).json({ error: 'You already have an active subscription' });
     }
+
+    console.log('No existing subscription found, checking for pending requests...');
 
     // Check if user already has a pending request
     const { data: pendingRequest } = await supabase
@@ -67,8 +85,11 @@ export default async function handler(
       .single();
 
     if (pendingRequest) {
+      console.log('User already has pending request:', pendingRequest);
       return res.status(400).json({ error: 'You already have a pending approval request' });
     }
+
+    console.log('Creating new subscription request...');
 
     // Create subscription request
     const { data: requestData, error: requestError } = await supabase
@@ -89,8 +110,13 @@ export default async function handler(
 
     if (requestError) {
       console.error('Error creating subscription request:', requestError);
-      return res.status(500).json({ error: 'Failed to create subscription request' });
+      return res.status(500).json({ 
+        error: 'Failed to create subscription request',
+        details: requestError.message 
+      });
     }
+
+    console.log('Subscription request created:', requestData);
 
     // Get all admins for this mess to notify them
     const { data: admins } = await supabase
@@ -111,16 +137,21 @@ export default async function handler(
       }));
 
       await supabase.from('notifications').insert(notifications);
+      console.log(`Created ${notifications.length} admin notifications`);
     }
 
+    console.log('Subscription request completed successfully');
     return res.status(200).json({
       success: true,
       message: 'Subscription request sent successfully. Admin will review and approve.',
       request: requestData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in request-subscription:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error?.message || 'Unknown error'
+    });
   }
 }

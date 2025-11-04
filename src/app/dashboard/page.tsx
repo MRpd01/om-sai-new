@@ -352,8 +352,24 @@ export default function DashboardPage() {
           }),
         });
 
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to send subscription request');
+        // Check if response has content before parsing JSON
+        const contentType = response.headers.get('content-type');
+        let data;
+        
+        if (contentType && contentType.includes('application/json')) {
+          const text = await response.text();
+          if (text) {
+            data = JSON.parse(text);
+          } else {
+            throw new Error('Empty response from server');
+          }
+        } else {
+          throw new Error('Server returned non-JSON response');
+        }
+
+        if (!response.ok) {
+          throw new Error(data?.error || 'Failed to send subscription request');
+        }
 
         alert('✅ Subscription request sent successfully!\n\nAdmin will review and approve your request. You will be notified once approved.');
         setShowSubscribeForm(false);
