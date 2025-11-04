@@ -564,31 +564,31 @@ export default function DashboardPage() {
         {/* Quick Actions Section */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-orange-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <button 
               onClick={() => {
                 const paymentSection = document.getElementById('payment-section');
                 paymentSection?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="bg-orange-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center space-x-2"
+              className="bg-orange-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center space-x-2 min-h-[48px]"
             >
-              <CreditCard className="h-4 w-4" />
-              <span>Pay Now</span>
+              <CreditCard className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm sm:text-base">Pay Now</span>
             </button>
             <button 
               onClick={() => window.location.href = '/menu'}
-              className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2"
+              className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2 min-h-[48px]"
             >
-              <Calendar className="h-4 w-4" />
-              <span>View Menu</span>
+              <Calendar className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm sm:text-base">View Menu</span>
             </button>
-            <button className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2">
-              <User className="h-4 w-4" />
-              <span>Update Profile</span>
+            <button className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2 min-h-[48px]">
+              <User className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm sm:text-base">Update Profile</span>
             </button>
-            <button className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2">
-              <Bell className="h-4 w-4" />
-              <span>Contact Admin</span>
+            <button className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2 min-h-[48px]">
+              <Bell className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm sm:text-base">Contact Admin</span>
             </button>
           </div>
         </div>
@@ -596,7 +596,7 @@ export default function DashboardPage() {
         {/* Role-based Dashboard Content */}
         {userRole === 'admin' ? (
           /* Admin Dashboard */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             <Link href="/members">
               <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
                 <CardHeader>
@@ -705,9 +705,9 @@ export default function DashboardPage() {
           </div>
         ) : (
           /* User Dashboard */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Payment Status Card - shows subscription form for first-time users OR current subscription */}
-            <Card id="payment-section" className="border-orange-200 md:col-span-2">
+            <Card id="payment-section" className="border-orange-200 lg:col-span-2">
               <CardHeader>
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-orange-100 rounded-lg">
@@ -976,7 +976,7 @@ export default function DashboardPage() {
                   <div className="space-y-4">
                     {/* Subscription Info */}
                     <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
                           <label className="text-xs font-medium text-orange-700">Plan</label>
                           <p className="text-sm font-bold text-orange-900 capitalize">
@@ -1013,7 +1013,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Payment Details */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="bg-white p-4 rounded-lg border border-orange-200">
                         <label className="text-xs font-medium text-orange-700">Total Amount</label>
                         <p className="text-2xl font-bold text-orange-600">
