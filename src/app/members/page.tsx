@@ -51,6 +51,22 @@ function MembersContent() {
   const { user, session, loading } = useAuth();
   const { language, t } = useLanguage();
   const router = useRouter();
+  
+  const userRole = user?.user_metadata?.role || 'user';
+
+  // Redirect non-admin users early - BEFORE other hooks
+  useEffect(() => {
+    if (!loading && userRole !== 'admin') {
+      router.push('/dashboard');
+    }
+  }, [userRole, loading, router]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
   const searchParams = useSearchParams();
   const [members, setMembers] = useState<Member[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
@@ -73,12 +89,6 @@ function MembersContent() {
     phone: '',
     plan: 'double_time' as SubscriptionType
   });
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
 
   // Fetch members from API
   const fetchMembers = useCallback(async () => {
@@ -147,15 +157,6 @@ function MembersContent() {
 
     setFilteredMembers(filtered);
   }, [members, searchTerm, statusFilter, planFilter]);
-
-  const userRole = user?.user_metadata?.role || 'user';
-
-  // Redirect non-admin users
-  useEffect(() => {
-    if (!loading && userRole !== 'admin') {
-      router.push('/dashboard');
-    }
-  }, [userRole, loading, router]);
 
   // Don't render anything for non-admin users
   if (userRole !== 'admin') {
