@@ -157,9 +157,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Creating/updating user profile for:', {
         userId: user.id,
         email: user.email,
-        metadata: user.user_metadata
+        role: user.user_metadata?.role
       });
       
+      // First, check if user already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, role, mess_id')
+        .eq('id', user.id)
+        .single();
+
+      if (existingUser) {
+        console.log('✅ User profile already exists, skipping upsert:', existingUser);
+        return;
+      }
+
       const profileData = {
         id: user.id,
         // Follow DB column names: name, email, mobile_number, parent_mobile, photo_url
@@ -172,55 +184,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         mess_id: user.user_metadata?.mess_id || null,
       };
 
-      console.log('Attempting to upsert profile data:', profileData);
+      console.log('User does not exist, creating profile...');
 
-      // Use upsert to handle both insert and update cases
+      // Insert new user profile
       const { data, error } = await supabase
         .from('users')
-        .upsert(profileData, {
-          onConflict: 'id',
-          ignoreDuplicates: false // Update if exists
-        })
+        .insert(profileData)
         .select()
         .single();
 
       if (error) {
+        // Check if it's a duplicate key error (user was created in parallel)
+        if (error.code === '23505') {
+          console.log('ℹ️ User profile created by another process, ignoring duplicate error');
+          return;
+        }
+
         // Check if error is empty object (RLS policy issue)
         const errorKeys = Object.keys(error);
         if (errorKeys.length === 0) {
-          console.error('⚠️ Empty error object - likely RLS policy blocking operation', {
+          console.warn('⚠️ Empty error object - likely RLS policy issue (non-critical)', {
             userId: user.id,
-            operation: 'upsert users table'
+            note: 'User profile may already exist or RLS policy is blocking operation'
           });
-          // Try to insert without upsert to get more specific error
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert(profileData)
-            .select()
-            .single();
-          
-          if (insertError) {
-            console.error('Insert attempt error:', insertError);
-          }
         } else {
-          console.error('Error upserting user profile:', {
-            error,
+          console.error('❌ Error creating user profile:', {
+            code: error.code,
             message: error.message,
             details: error.details,
             hint: error.hint,
-            code: error.code,
             userId: user.id
           });
         }
       } else {
-        console.log('✅ User profile upserted successfully:', data);
+        console.log('✅ User profile created successfully:', data);
       }
     } catch (error: any) {
-      console.error('❌ Exception while upserting user profile:', {
-        error,
+      console.error('❌ Exception while creating user profile:', {
         message: error?.message,
-        userId: user.id,
-        stack: error?.stack
+        userId: user.id
       });
     }
   };
