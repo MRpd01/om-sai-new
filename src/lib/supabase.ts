@@ -4,10 +4,53 @@ import { createBrowserClient } from '@supabase/ssr'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Validate environment variables
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Missing Supabase environment variables:', {
+    url: supabaseUrl ? '✓' : '✗',
+    key: supabaseAnonKey ? '✓' : '✗'
+  });
+  throw new Error('Supabase environment variables are not configured');
+}
+
+// Create Supabase client with retry configuration
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  },
+  global: {
+    fetch: (url, options = {}) => {
+      // Add retry logic for network failures
+      return fetch(url, {
+        ...options,
+        // Add timeout
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      }).catch(error => {
+        console.error('🔄 Supabase fetch failed, retrying...', {
+          url,
+          error: error.message
+        });
+        // Retry once after 1 second
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            fetch(url, options).then(resolve).catch(reject);
+          }, 1000);
+        });
+      });
+    }
+  }
+});
 
 export function createSupabaseBrowserClient() {
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
 }
 
 // Menu RPC helpers
