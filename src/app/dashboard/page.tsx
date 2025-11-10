@@ -242,11 +242,25 @@ export default function DashboardPage() {
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching subscription:', error);
+          // Check if error is empty object (common for no results or RLS)
+          const errorKeys = Object.keys(error);
+          if (errorKeys.length === 0) {
+            console.log('ℹ️ No subscription found for user (empty error - likely no data or RLS)');
+            setShowSubscribeForm(true);
+          } else {
+            console.error('❌ Error fetching subscription:', {
+              error,
+              message: error.message,
+              code: error.code,
+              details: error.details
+            });
+          }
         } else {
-          setMemberSubscription(data);
-          // If no subscription exists, show subscribe form
-          if (!data) {
+          if (data) {
+            console.log('✅ Subscription found:', data);
+            setMemberSubscription(data);
+          } else {
+            console.log('ℹ️ No subscription exists, showing subscribe form');
             setShowSubscribeForm(true);
           }
         }
