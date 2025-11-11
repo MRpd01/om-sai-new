@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Only mess owners (admin) can add members' })
     }
 
-    const { name, email, phone, plan, photoBase64, paymentAmount, paymentType, totalAmountDue } = req.body
+    const { name, email, phone, parent_mobile, plan, photoBase64, paymentAmount, paymentType, totalAmountDue } = req.body
     if (!email || !name || !phone) return res.status(400).json({ error: 'Missing required fields' })
 
     const amountPaid = Number(paymentAmount) || 0
@@ -106,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: name,
         email: email,
         mobile_number: phone,
-        parent_mobile: null,
+        parent_mobile: parent_mobile || null,
         photo_url: photoUrl,
         role: 'user',
         mess_id: callerProfile.mess_id || null,

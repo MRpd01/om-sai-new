@@ -48,25 +48,79 @@ export default async function handler(
     }
 
     // Get user's mess_id
+    console.log('🔍 Fetching user from database with ID:', userId);
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('mess_id')
       .eq('id', userId)
       .single();
 
-    if (userError || !userData?.mess_id) {
-      console.error('User not found or not assigned to mess:', userError);
-      return res.status(404).json({ error: 'User not found or not assigned to a mess' });
+    console.log('📊 User query result:', { userData, userError });
+
+    if (userError) {
+      console.error('❌ User not found error:', {
+        message: userError.message,
+        code: userError.code,
+        details: userError.details,
+        hint: userError.hint
+      });
+      return res.status(404).json({ 
+        error: 'User not found',
+        details: userError.message,
+        hint: 'Please ensure your profile is created. Try signing out and back in.'
+      });
     }
 
-    console.log('User mess_id:', userData.mess_id);
+    if (!userData) {
+      console.error('❌ No user data returned');
+      return res.status(404).json({ 
+        error: 'User profile not found',
+        hint: 'Please sign out and sign back in to create your profile.'
+      });
+    }
+
+    let messId = userData?.mess_id;
+
+    // If user doesn't have a mess_id, auto-assign to the default mess
+    if (!messId) {
+      console.log('User not assigned to mess, auto-assigning to default mess...');
+      
+      // Get the first active mess (there's only one mess in this system)
+      const { data: defaultMess, error: messError } = await supabase
+        .from('messes')
+        .select('id')
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+
+      if (messError || !defaultMess) {
+        console.error('No active mess found:', messError);
+        return res.status(500).json({ error: 'No active mess available. Please contact support.' });
+      }
+
+      messId = defaultMess.id;
+
+      // Update user's mess_id
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ mess_id: messId })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Failed to assign user to mess:', updateError);
+      } else {
+        console.log('✅ User auto-assigned to mess:', messId);
+      }
+    }
+
+    console.log('User mess_id:', messId);
 
     // Check if user already has a subscription
     const { data: existingSubscription } = await supabase
       .from('mess_members')
       .select('id')
       .eq('user_id', userId)
-      .eq('mess_id', userData.mess_id)
+      .eq('mess_id', messId)
       .single();
 
     if (existingSubscription) {
@@ -96,7 +150,7 @@ export default async function handler(
       .from('subscription_requests')
       .insert({
         user_id: userId,
-        mess_id: userData.mess_id,
+        mess_id: messId,
         user_name: userName,
         user_email: userEmail,
         user_phone: userPhone || null,
@@ -122,7 +176,7 @@ export default async function handler(
     const { data: admins } = await supabase
       .from('users')
       .select('id, name, email')
-      .eq('mess_id', userData.mess_id)
+      .eq('mess_id', messId)
       .eq('role', 'admin');
 
     // Create notifications for all admins

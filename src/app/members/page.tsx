@@ -18,6 +18,7 @@ interface Member {
   name: string;
   email: string | null;
   phone: string | null;
+  parent_mobile: string | null;
   photo_url: string | null;
   joinDate: string;
   expiryDate: string | null;
@@ -87,6 +88,7 @@ function MembersContent() {
     name: '',
     email: '',
     phone: '',
+    parent_mobile: '',
     plan: 'double_time' as SubscriptionType
   });
 
@@ -158,11 +160,6 @@ function MembersContent() {
     setFilteredMembers(filtered);
   }, [members, searchTerm, statusFilter, planFilter]);
 
-  // Don't render anything for non-admin users
-  if (userRole !== 'admin') {
-    return null;
-  }
-
   const handleAddMember = async () => {
     if (!newMember.name || !newMember.email || !newMember.phone) {
       alert('Please fill in all required fields');
@@ -186,7 +183,8 @@ function MembersContent() {
         body: JSON.stringify({ 
           name: newMember.name, 
           email: newMember.email, 
-          phone: newMember.phone, 
+          phone: newMember.phone,
+          parent_mobile: newMember.parent_mobile || null,
           plan: newMember.plan,
           joiningDate: joiningDate,
           photoBase64: photoPreview,
@@ -206,7 +204,7 @@ function MembersContent() {
       await fetchMembers();
       
       // Reset form
-      setNewMember({ name: '', email: '', phone: '', plan: 'double_time' });
+      setNewMember({ name: '', email: '', phone: '', parent_mobile: '', plan: 'double_time' });
       setPhotoFile(null);
       setPhotoPreview(null);
       setJoiningDate(new Date().toISOString().split('T')[0]);
@@ -307,6 +305,17 @@ function MembersContent() {
   }
 
   if (!user) return null;
+
+  // Redirect non-admin users
+  if (userRole !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-orange-700">Access denied. Admin only.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
@@ -613,7 +622,7 @@ function MembersContent() {
                 <button
                   onClick={() => {
                     setIsAddingMember(false);
-                    setNewMember({ name: '', email: '', phone: '', plan: 'double_time' });
+                    setNewMember({ name: '', email: '', phone: '', parent_mobile: '', plan: 'double_time' });
                     setPhotoFile(null);
                     setPhotoPreview(null);
                     router.push('/members');
@@ -697,12 +706,28 @@ function MembersContent() {
 
                 {/* Phone */}
                 <div>
-                  <label className="text-sm font-medium text-orange-900 mb-1 block">Phone</label>
+                  <label className="text-sm font-medium text-orange-900 mb-1 block">
+                    Phone <span className="text-red-500">*</span>
+                  </label>
                   <Input
                     type="tel"
                     value={newMember.phone}
                     onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })}
                     placeholder="Enter phone number"
+                    className="border-orange-200 focus:border-orange-400"
+                  />
+                </div>
+
+                {/* Parent Mobile */}
+                <div>
+                  <label className="text-sm font-medium text-orange-900 mb-1 block">
+                    Parent Mobile Number
+                  </label>
+                  <Input
+                    type="tel"
+                    value={newMember.parent_mobile}
+                    onChange={(e) => setNewMember({ ...newMember, parent_mobile: e.target.value })}
+                    placeholder="Enter parent/guardian mobile number (optional)"
                     className="border-orange-200 focus:border-orange-400"
                   />
                 </div>
@@ -815,7 +840,7 @@ function MembersContent() {
                   <Button
                     onClick={() => {
                       setIsAddingMember(false);
-                      setNewMember({ name: '', email: '', phone: '', plan: 'double_time' });
+                      setNewMember({ name: '', email: '', phone: '', parent_mobile: '', plan: 'double_time' });
                       setPhotoFile(null);
                       setPhotoPreview(null);
                       router.push('/members');
@@ -912,6 +937,19 @@ function MembersContent() {
                           />
                         ) : (
                           <p className="mt-1 text-gray-900 font-medium">{selectedMember.email || 'Not provided'}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-orange-700">Parent/Guardian Mobile</label>
+                        {editMode ? (
+                          <Input
+                            type="tel"
+                            value={selectedMember.parent_mobile || ''}
+                            onChange={(e) => setSelectedMember({ ...selectedMember, parent_mobile: e.target.value })}
+                            className="mt-1 border-orange-200"
+                          />
+                        ) : (
+                          <p className="mt-1 text-gray-900 font-medium">{selectedMember.parent_mobile || 'Not provided'}</p>
                         )}
                       </div>
                     </div>

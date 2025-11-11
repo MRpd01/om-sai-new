@@ -68,7 +68,18 @@ export default function DashboardPage() {
   const [memberCameraStream, setMemberCameraStream] = useState<MediaStream | null>(null);
   const [addingMember, setAddingMember] = useState(false);
   
-  const userRole = user?.user_metadata?.role || 'user';
+  // Stable role state to prevent flickering
+  const [stableRole, setStableRole] = useState<'admin' | 'user' | null>(null);
+  const userRole = stableRole || user?.user_metadata?.role || 'user';
+  
+  // Set stable role once user is loaded
+  useEffect(() => {
+    if (user && !loading) {
+      const role = (user.user_metadata?.role || 'user') as 'admin' | 'user';
+      setStableRole(role);
+    }
+  }, [user, loading]);
+  
   const planPrices: Record<string, number> = { 
     double_time: 2600, 
     single_time: 1500, 
@@ -409,8 +420,15 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user) {
-    return null;
+  if (!user || !stableRole) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="mt-4 text-orange-700">Loading dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -9,6 +9,7 @@ type MemberResponse = {
   name: string;
   email: string | null;
   phone: string | null;
+  parent_mobile: string | null;
   photo_url: string | null;
   plan: SubscriptionType;
   joinDate: string;
@@ -96,6 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         users!mess_members_user_id_fkey (
           id,
           name,
+          email,
           mobile_number,
           parent_mobile,
           photo_url
@@ -158,8 +160,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       return {
         id: member.id,
         name: userInfo?.name || 'Member',
-        email: null, // Users table doesn't have email column
+        email: userInfo?.email ?? null,
         phone: userInfo?.mobile_number ?? null,
+        parent_mobile: userInfo?.parent_mobile ?? null,
         photo_url: userInfo?.photo_url ?? null,
         plan: subscription_type,
         joinDate: member.joining_date ?? new Date().toISOString().split('T')[0],

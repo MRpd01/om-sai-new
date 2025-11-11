@@ -172,6 +172,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Get the default mess (there's only one mess in this system)
+      const { data: defaultMess } = await supabase
+        .from('messes')
+        .select('id')
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+
+      const defaultMessId = defaultMess?.id || null;
+      
+      if (defaultMessId) {
+        console.log('✅ Auto-assigning user to default mess:', defaultMessId);
+      } else {
+        console.warn('⚠️ No active mess found for auto-assignment');
+      }
+
       const profileData = {
         id: user.id,
         // Follow DB column names: name, email, mobile_number, parent_mobile, photo_url
@@ -181,10 +197,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         parent_mobile: user.user_metadata?.parent_mobile || null,
         photo_url: user.user_metadata?.avatar || null,
         role: user.user_metadata?.role || 'user',
-        mess_id: user.user_metadata?.mess_id || null,
+        mess_id: user.user_metadata?.mess_id || defaultMessId, // Auto-assign to default mess
       };
 
-      console.log('User does not exist, creating profile...');
+      console.log('User does not exist, creating profile with mess_id:', profileData.mess_id);
 
       // Insert new user profile
       const { data, error } = await supabase
@@ -196,26 +212,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         // Check if it's a duplicate key error (user was created in parallel)
         if (error.code === '23505') {
-          console.log('ℹ️ User profile created by another process, ignoring duplicate error');
+          console.log('ℹ️ User profile already exists (duplicate key), skipping');
           return;
         }
 
-        // Check if error is empty object (RLS policy issue)
+        // Check if error is empty object (RLS policy blocking INSERT)
         const errorKeys = Object.keys(error);
-        if (errorKeys.length === 0) {
-          console.warn('⚠️ Empty error object - likely RLS policy issue (non-critical)', {
-            userId: user.id,
-            note: 'User profile may already exist or RLS policy is blocking operation'
-          });
-        } else {
-          console.error('❌ Error creating user profile:', {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            userId: user.id
-          });
+        if (errorKeys.length === 0 || !error.message) {
+          console.warn('⚠️ Profile creation blocked by RLS policy. Attempting via API...');
+          
+          // Try creating via API endpoint (uses service role to bypass RLS)
+          try {
+            const response = await fetch('/api/create-user-profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(profileData)
+            });
+            
+            if (response.ok) {
+              console.log('✅ User profile created via API');
+              return;
+            } else {
+              const apiError = await response.json();
+              console.error('❌ API profile creation failed:', apiError);
+            }
+          } catch (apiError) {
+            console.error('❌ API call failed:', apiError);
+          }
+          return;
         }
+
+        // Only log if it's a real error with actual error data
+        console.error('❌ Error creating user profile:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          userId: user.id
+        });
       } else {
         console.log('✅ User profile created successfully:', data);
       }
@@ -300,22 +334,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      setLoading(true);
-      
-      // Clear state immediately for better UX
+      // Clear state immediately for instant UX
       setUser(null);
       setSession(null);
+      setLoading(false); // Set loading false immediately
       
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Supabase sign out error:', error);
-        // Don't throw error - state is already cleared, user is effectively logged out
-      }
+      // Sign out from Supabase in background (don't wait)
+      supabase.auth.signOut().catch(error => {
+        console.error('⚠️ Background sign out error (non-critical):', error);
+      });
+      
+      // Redirect immediately without waiting
+      window.location.href = '/login';
     } catch (error) {
-      console.error('Sign out catch error:', error);
-      // Don't re-throw - state is already cleared
-    } finally {
+      console.error('Sign out error:', error);
+      // Force clear state even on error
+      setUser(null);
+      setSession(null);
       setLoading(false);
+      window.location.href = '/login';
     }
   };
 
