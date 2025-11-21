@@ -634,13 +634,7 @@ export default function Home() {
       <main className="flex-1 pt-16 sm:pt-20 lg:pt-24 relative overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <Image 
-            src="/images/#thali#indianfood.jpeg" 
-            alt="Delicious Indian Thali" 
-            fill
-            className="object-cover opacity-30"
-            priority
-          />
+          
           <div className="absolute inset-0 bg-gradient-to-br from-cream/80 via-paneer/80 to-orange-50/80"></div>
         </div>
 
