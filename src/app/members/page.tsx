@@ -14,7 +14,8 @@ type SubscriptionType = 'full_month' | 'half_month' | 'single_morning' | 'single
 type PaymentStatus = 'success' | 'due' | 'pending' | 'failed';
 
 interface Member {
-  id: string;
+  id: string; // mess_members.id (membership ID)
+  userId: string; // users.id (user ID)
   name: string;
   email: string | null;
   phone: string | null;
@@ -54,6 +55,8 @@ function MembersContent() {
   const router = useRouter();
   
   const userRole = user?.user_metadata?.role || 'user';
+  const isOwner = userRole === 'admin' && (user?.user_metadata?.sub_role === 'owner' || !user?.user_metadata?.sub_role);
+  const isSubAdmin = userRole === 'admin' && user?.user_metadata?.sub_role === 'sub_admin';
 
   // Redirect non-admin users early - BEFORE other hooks
   useEffect(() => {
@@ -74,8 +77,12 @@ function MembersContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'pending'>('all');
   const [planFilter, setPlanFilter] = useState<'all' | SubscriptionType>('all');
+  
+  // Check if in manage mode (password-protected access for add/edit operations)
+  const isManageMode = searchParams?.get('manage') === 'true';
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
+  const [addingMember, setAddingMember] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [joiningDate, setJoiningDate] = useState(new Date().toISOString().split('T')[0]);
@@ -134,6 +141,17 @@ function MembersContent() {
     setIsAddingMember(shouldOpen);
   }, [searchParams]);
 
+  // Apply status filter from URL on mount and whenever searchParams change
+  useEffect(() => {
+    const statusFromUrl = searchParams?.get('status') as 'active' | 'inactive' | 'pending' | null;
+    if (statusFromUrl && ['active', 'inactive', 'pending'].includes(statusFromUrl)) {
+      setStatusFilter(statusFromUrl);
+      console.log('📊 Filtering members by status:', statusFromUrl);
+    } else if (!statusFromUrl) {
+      setStatusFilter('all');
+    }
+  }, [searchParams]);
+
   // Filter members based on search and filters
   useEffect(() => {
     let filtered = members;
@@ -163,17 +181,41 @@ function MembersContent() {
   const handleAddMember = async () => {
     if (!newMember.name || !newMember.email || !newMember.phone) {
       alert('Please fill in all required fields');
-      return;
+      return false;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newMember.email)) {
+      alert('Please enter a valid email address');
+      return false;
+    }
+
+    // Validate phone format (10 digits)
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(newMember.phone.replace(/\D/g, ''))) {
+      alert('Please enter a valid 10-digit phone number');
+      return false;
     }
 
     const planPrice = getSelectedPlanPrice();
     if (paymentAmount > planPrice) {
       alert(`Payment amount cannot exceed plan price of ₹${planPrice}`);
-      return;
+      return false;
     }
 
+    if (!session?.access_token) {
+      alert('You are not logged in. Please log in and try again.');
+      return false;
+    }
+
+    setAddingMember(true);
     try {
       const token = session?.access_token;
+      
+      console.log('📤 Sending request to add member...');
+      console.log('Member details:', { name: newMember.name, email: newMember.email, phone: newMember.phone, plan: newMember.plan });
+      
       const resp = await fetch('/api/add-member', {
         method: 'POST',
         headers: {
@@ -194,31 +236,43 @@ function MembersContent() {
         })
       });
 
+      console.log('📥 Response status:', resp.status);
       const data = await resp.json();
+      console.log('📥 Response data:', data);
+      
       if (!resp.ok) {
-        alert('Failed to add member: ' + (data.error || resp.statusText));
-        return;
+        const errorMsg = data.error || resp.statusText || 'Unknown error';
+        console.error('❌ API Error:', errorMsg);
+        alert('Failed to add member: ' + errorMsg);
+        return false;
       }
 
       // Refresh the members list after adding
       await fetchMembers();
       
-      // Reset form
+      const paymentStatus = paymentAmount === 0 ? 'No payment made' :
+                           paymentAmount < planPrice ? `Advance payment of ₹${paymentAmount}. Remaining: ₹${planPrice - paymentAmount}` :
+                           'Full payment received';
+      
+      alert(`✅ Member added successfully!\n\n🔐 Login Credentials:\nEmail: ${newMember.email}\nPassword: ${data.tempPassword}\n\n💰 Payment Status: ${paymentStatus}\n\n⚠️ Please share these credentials with the member securely.`);
+      
+      // Reset form after successful addition
       setNewMember({ name: '', email: '', phone: '', parent_mobile: '', plan: 'double_time' });
       setPhotoFile(null);
       setPhotoPreview(null);
       setJoiningDate(new Date().toISOString().split('T')[0]);
       setPaymentAmount(2600);
       setPaymentType('full');
+      setIsAddingMember(false);
       
-      const paymentStatus = paymentAmount === 0 ? 'No payment made' :
-                           paymentAmount < planPrice ? `Advance payment of ₹${paymentAmount}. Remaining: ₹${planPrice - paymentAmount}` :
-                           'Full payment received';
-      
-      alert(`Member added successfully!\n\nTemporary password: ${data.tempPassword}\n\nPayment Status: ${paymentStatus}\n\nPlease share the password with the member securely.`);
-    } catch (err) {
-      console.error('Error adding member:', err);
-      alert('An unexpected error occurred while adding member');
+      return true;
+    } catch (err: any) {
+      console.error('❌ Error adding member:', err);
+      const errorMessage = err.message || 'An unexpected error occurred';
+      alert(`Failed to add member: ${errorMessage}\n\nPlease check:\n- Your internet connection\n- Browser console for detailed error logs\n- Server is running on http://localhost:3000`);
+      return false;
+    } finally {
+      setAddingMember(false);
     }
   };
 
@@ -266,11 +320,45 @@ function MembersContent() {
   };
 
   const handleUpdateMember = async () => {
-    if (!selectedMember) return;
+    if (!selectedMember || !session?.access_token) return;
     
-    // TODO: Implement update API call
-    alert('Update member functionality will be implemented');
-    setEditMode(false);
+    try {
+      const response = await fetch('/api/update-member', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          memberId: selectedMember.id,
+          userId: selectedMember.userId,
+          name: selectedMember.name,
+          email: selectedMember.email,
+          phone: selectedMember.phone,
+          parent_mobile: selectedMember.parent_mobile,
+          plan: selectedMember.plan,
+          joinDate: selectedMember.joinDate,
+          expiryDate: selectedMember.expiryDate,
+          advancePayment: selectedMember.advancePayment || selectedMember.amount || 0,
+          totalAmountDue: selectedMember.totalAmountDue || 0
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update member');
+      }
+
+      alert(`✅ Member updated successfully!\n\nPayment Status: ${data.paymentStatus}\nRemaining Amount: ₹${data.remainingAmount || 0}`);
+      setEditMode(false);
+      
+      // Refresh members list
+      await fetchMembers();
+    } catch (error: any) {
+      console.error('Error updating member:', error);
+      alert('Failed to update member: ' + (error.message || 'Unknown error'));
+    }
   };
 
   const getStatusColor = (status: Member['status']) => {
@@ -279,6 +367,15 @@ function MembersContent() {
       case 'inactive': return 'text-red-600 bg-red-100';
       case 'pending': return 'text-purple-600 bg-purple-100'; // Purple for advance payment
       default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  const getStatusLabel = (status: Member['status']) => {
+    switch (status) {
+      case 'active': return 'Active (Fully Paid)';
+      case 'inactive': return 'Inactive (Expired/Unpaid)';
+      case 'pending': return 'Partially Active (Advance Paid)';
+      default: return 'Unknown';
     }
   };
 
@@ -295,10 +392,50 @@ function MembersContent() {
 
   if (loading || loadingMembers) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
-          <p className="mt-4 text-orange-700">Loading members...</p>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+        {/* Skeleton Header */}
+        <div className="bg-white shadow-sm border-b border-orange-200 p-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <div className="skeleton h-10 w-10 rounded-full"></div>
+              <div className="skeleton h-8 w-48"></div>
+            </div>
+            <div className="skeleton h-10 w-32"></div>
+          </div>
+        </div>
+
+        {/* Skeleton Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Skeleton Search Bar */}
+          <div className="mb-6 flex gap-4">
+            <div className="skeleton h-10 flex-1"></div>
+            <div className="skeleton h-10 w-32"></div>
+            <div className="skeleton h-10 w-32"></div>
+          </div>
+
+          {/* Skeleton Member Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-lg border border-orange-100 p-6">
+                <div className="flex items-start space-x-4 mb-4">
+                  <div className="skeleton h-16 w-16 rounded-full"></div>
+                  <div className="flex-1">
+                    <div className="skeleton h-5 w-32 mb-2"></div>
+                    <div className="skeleton h-4 w-24"></div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="skeleton h-4 w-full"></div>
+                  <div className="skeleton h-4 w-3/4"></div>
+                  <div className="skeleton h-4 w-5/6"></div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <div className="skeleton h-8 flex-1"></div>
+                  <div className="skeleton h-8 w-8"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -354,35 +491,92 @@ function MembersContent() {
       </header>
 
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Add New Member Card */}
-        <Card 
-          className="border-orange-200 mb-8 cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => router.push('/members?add=1')}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <Users className="h-6 w-6 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-orange-900">
-                    {language === 'en' ? 'Add New Member' : 'नवीन सदस्य जोडा'}
-                  </h3>
-                  <p className="text-sm text-orange-600">
-                    {language === 'en' ? 'Add member with subscription & photo' : 'सदस्य सबस्क्रिप्शन आणि फोटो सह जोडा'}
-                  </p>
-                </div>
+        {/* Manage mode banner for owners */}
+        {isOwner && isManageMode && (
+          <div className="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
               </div>
-              <div className="flex items-center space-x-2 text-orange-600">
-                <Plus className="h-5 w-5" />
-                <span className="text-sm font-medium hidden sm:inline">
-                  {language === 'en' ? 'Click to add member' : 'सदस्य जोडण्यासाठी क्लिक करा'}
-                </span>
+              <div className="ml-3">
+                <p className="text-sm text-green-700 font-medium">
+                  🔓 Full Access Mode - You can add, edit, and delete members
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+
+        {/* View-only mode banner for owners not in manage mode */}
+        {isOwner && !isManageMode && (
+          <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700 font-medium">
+                  👁️ View-Only Mode - To add or edit members, use the "Manage Members" option from dashboard
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Read-only banner for sub-admins */}
+        {isSubAdmin && (
+          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700 font-medium">
+                  👁️ Read-Only Access - You can view member details but cannot add or edit members
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add New Member Card - Only for owners in manage mode */}
+        {isOwner && isManageMode && (
+          <Card 
+            className="border-orange-200 mb-8 cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => router.push('/members?add=1')}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-orange-100 rounded-lg">
+                    <Users className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-orange-900">
+                      {language === 'en' ? 'Add New Member' : 'नवीन सदस्य जोडा'}
+                    </h3>
+                    <p className="text-sm text-orange-600">
+                      {language === 'en' ? 'Add member with subscription & photo' : 'सदस्य सबस्क्रिप्शन आणि फोटो सह जोडा'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 text-orange-600">
+                  <Plus className="h-5 w-5" />
+                  <span className="text-sm font-medium hidden sm:inline">
+                    {language === 'en' ? 'Click to add member' : 'सदस्य जोडण्यासाठी क्लिक करा'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
   {/* Open modal when ?add=1 present - handled in effect below */}
         {/* Statistics Cards */}
@@ -453,6 +647,27 @@ function MembersContent() {
         {/* Filters and Search */}
         <Card className="border-orange-200 mb-6">
           <CardContent className="p-6">
+            {/* Active Filter Badge */}
+            {statusFilter !== 'all' && (
+              <div className="mb-4 flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-medium text-orange-900">
+                    Filtering by: <span className="capitalize font-bold">{statusFilter}</span> members
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setStatusFilter('all');
+                    router.push('/members');
+                  }}
+                  className="text-xs text-orange-600 hover:text-orange-800 underline"
+                >
+                  Clear filter
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
@@ -553,7 +768,7 @@ function MembersContent() {
                   <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
                     <div className="flex flex-wrap gap-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(member.status)}`}>
-                        {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
+                        {getStatusLabel(member.status)}
                       </span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlanColor(member.plan)}`}>
                         {planLabels[member.plan]}
@@ -571,40 +786,25 @@ function MembersContent() {
                          'Unknown'}
                       </span>
                     </div>
-                    <div className="text-left sm:text-right">
-                      <div className="text-sm font-medium text-orange-900">
-                        {member.amount ? `₹${member.amount}` : 'N/A'}
-                      </div>
-                      <div className="text-xs text-orange-500">
-                        {member.lastPayment ? `Last: ${new Date(member.lastPayment).toLocaleDateString()}` : 'No payment'}
-                      </div>
-                    </div>
                     <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="border-orange-200 text-orange-600"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewMember(member);
-                          setEditMode(true);
-                        }}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="border-red-200 text-red-600 hover:bg-red-50"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (confirm(`Are you sure you want to delete ${member.name}?`)) {
-                            handleDeleteMember(member.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {isOwner && isManageMode && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-red-200 text-red-600 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Are you sure you want to delete ${member.name}?`)) {
+                              handleDeleteMember(member.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {isSubAdmin && (
+                        <span className="text-xs text-gray-500 px-2 py-1">View Only</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -651,6 +851,7 @@ function MembersContent() {
                         variant="outline"
                         className="border-orange-200 text-orange-600"
                         onClick={handlePhotoCapture}
+                        suppressHydrationWarning
                       >
                         <span className="mr-2">📷</span>
                         Camera
@@ -661,6 +862,7 @@ function MembersContent() {
                           variant="default"
                           className="bg-orange-900 hover:bg-orange-800"
                           onClick={() => document.getElementById('photo-upload')?.click()}
+                          suppressHydrationWarning
                         >
                           <span className="mr-2">⬆</span>
                           Upload
@@ -830,12 +1032,15 @@ function MembersContent() {
                 <div className="flex space-x-3 pt-4">
                   <Button
                     onClick={async () => {
-                      await handleAddMember();
-                      router.push('/members');
+                      const success = await handleAddMember();
+                      if (success) {
+                        router.push('/members');
+                      }
                     }}
-                    className="flex-1 bg-orange-600 hover:bg-orange-700 h-11"
+                    disabled={addingMember}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 h-11 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Add Member
+                    {addingMember ? 'Adding Member...' : 'Add Member'}
                   </Button>
                   <Button
                     onClick={() => {
@@ -873,6 +1078,7 @@ function MembersContent() {
                 </button>
                 <CardTitle className="text-orange-900 text-xl">
                   {editMode ? 'Edit Member Profile' : 'Member Profile'}
+                  {isSubAdmin && <span className="text-sm font-normal text-yellow-600 ml-2">(Read-Only)</span>}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
@@ -897,7 +1103,7 @@ function MembersContent() {
                   </div>
                   <div className="flex space-x-2">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedMember.status)}`}>
-                      {selectedMember.status.charAt(0).toUpperCase() + selectedMember.status.slice(1)}
+                      {getStatusLabel(selectedMember.status)}
                     </span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPlanColor(selectedMember.plan)}`}>
                       {planLabels[selectedMember.plan]}
@@ -982,25 +1188,43 @@ function MembersContent() {
                       </div>
                       <div>
                         <label className="text-sm font-medium text-orange-700">Joining Date</label>
-                        <p className="mt-1 text-gray-900 font-medium">
-                          {new Date(selectedMember.joinDate).toLocaleDateString('en-IN', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
-                        </p>
+                        {editMode ? (
+                          <Input
+                            type="date"
+                            value={selectedMember.joinDate}
+                            onChange={(e) => setSelectedMember({ ...selectedMember, joinDate: e.target.value })}
+                            className="mt-1 border-orange-200"
+                          />
+                        ) : (
+                          <p className="mt-1 text-gray-900 font-medium">
+                            {new Date(selectedMember.joinDate).toLocaleDateString('en-IN', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-orange-700">Expiry Date</label>
-                        <p className="mt-1 text-gray-900 font-medium">
-                          {selectedMember.expiryDate 
-                            ? new Date(selectedMember.expiryDate).toLocaleDateString('en-IN', { 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric' 
-                              })
-                            : 'Not set'}
-                        </p>
+                        {editMode ? (
+                          <Input
+                            type="date"
+                            value={selectedMember.expiryDate || ''}
+                            onChange={(e) => setSelectedMember({ ...selectedMember, expiryDate: e.target.value })}
+                            className="mt-1 border-orange-200"
+                          />
+                        ) : (
+                          <p className="mt-1 text-gray-900 font-medium">
+                            {selectedMember.expiryDate 
+                              ? new Date(selectedMember.expiryDate).toLocaleDateString('en-IN', { 
+                                  year: 'numeric', 
+                                  month: 'long', 
+                                  day: 'numeric' 
+                                })
+                              : 'Not set'}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1017,15 +1241,13 @@ function MembersContent() {
                       <div>
                         <label className="text-sm font-medium text-orange-700">Payment Status</label>
                         <p className={`mt-1 font-semibold ${
-                          selectedMember.paymentStatus === 'success' ? 'text-green-600' :
-                          selectedMember.paymentStatus === 'due' ? 'text-red-600' :
-                          selectedMember.paymentStatus === 'pending' ? 'text-purple-600' :
-                          'text-gray-600'
+                          selectedMember.status === 'active' ? 'text-green-600' :
+                          selectedMember.status === 'pending' ? 'text-purple-600' :
+                          'text-red-600'
                         }`}>
-                          {selectedMember.paymentStatus === 'success' ? 'ACTIVE - PAID' :
-                           selectedMember.paymentStatus === 'due' ? 'INACTIVE - UNPAID' :
-                           selectedMember.paymentStatus === 'pending' ? 'ADVANCE PAID - NOT SETTLED' :
-                           selectedMember.paymentStatus.toUpperCase()}
+                          {selectedMember.status === 'active' ? 'ACTIVE - PAID' :
+                           selectedMember.status === 'pending' ? 'PARTIALLY ACTIVE - ADVANCE PAID' :
+                           'INACTIVE'}
                         </p>
                       </div>
                       <div>
@@ -1038,15 +1260,54 @@ function MembersContent() {
                       </div>
                       <div>
                         <label className="text-sm font-medium text-orange-700">Amount Paid</label>
-                        <p className="mt-1 text-2xl font-bold text-green-600">
-                          ₹{selectedMember.amount || selectedMember.advancePayment || '0'}
-                        </p>
+                        {editMode ? (
+                          <Input
+                            type="number"
+                            value={selectedMember.advancePayment || selectedMember.amount || 0}
+                            onChange={(e) => {
+                              const newAdvancePayment = Number(e.target.value);
+                              const totalDue = selectedMember.totalAmountDue || getSelectedPlanPrice();
+                              const remaining = totalDue - newAdvancePayment;
+                              setSelectedMember({ 
+                                ...selectedMember, 
+                                advancePayment: newAdvancePayment,
+                                amount: newAdvancePayment,
+                                remainingAmount: remaining > 0 ? remaining : 0
+                              });
+                            }}
+                            className="mt-1 border-orange-200 text-green-600 font-bold text-xl"
+                            min="0"
+                          />
+                        ) : (
+                          <p className="mt-1 text-2xl font-bold text-green-600">
+                            ₹{selectedMember.amount || selectedMember.advancePayment || '0'}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-orange-700">Total Amount Due</label>
-                        <p className="mt-1 text-2xl font-bold text-orange-600">
-                          ₹{selectedMember.totalAmountDue || getSelectedPlanPrice()}
-                        </p>
+                        {editMode ? (
+                          <Input
+                            type="number"
+                            value={selectedMember.totalAmountDue || getSelectedPlanPrice()}
+                            onChange={(e) => {
+                              const newTotalDue = Number(e.target.value);
+                              const advancePaid = selectedMember.advancePayment || selectedMember.amount || 0;
+                              const remaining = newTotalDue - advancePaid;
+                              setSelectedMember({ 
+                                ...selectedMember, 
+                                totalAmountDue: newTotalDue,
+                                remainingAmount: remaining > 0 ? remaining : 0
+                              });
+                            }}
+                            className="mt-1 border-orange-200 text-orange-600 font-bold text-xl"
+                            min="0"
+                          />
+                        ) : (
+                          <p className="mt-1 text-2xl font-bold text-orange-600">
+                            ₹{selectedMember.totalAmountDue || getSelectedPlanPrice()}
+                          </p>
+                        )}
                       </div>
                       {selectedMember.paymentStatus === 'pending' && selectedMember.remainingAmount && selectedMember.remainingAmount > 0 && (
                         <>
@@ -1068,13 +1329,25 @@ function MembersContent() {
                         <label className="text-sm font-medium text-orange-700">Member Status</label>
                         <p className={`mt-1 font-bold text-lg ${
                           selectedMember.status === 'active' ? 'text-green-600' :
-                          selectedMember.status === 'inactive' ? 'text-red-600' :
-                          'text-purple-600'
+                          selectedMember.status === 'pending' ? 'text-purple-600' :
+                          'text-red-600'
                         }`}>
                           {selectedMember.status === 'active' ? '✓ ACTIVE' :
-                           selectedMember.status === 'inactive' ? '✗ INACTIVE' :
-                           '⚡ ADVANCE PAYMENT'}
+                           selectedMember.status === 'pending' ? '⚡ PARTIALLY ACTIVE' :
+                           '✗ INACTIVE'}
                         </p>
+                        {selectedMember.status === 'inactive' && selectedMember.expiryDate && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {new Date(selectedMember.expiryDate) < new Date() 
+                              ? `Expired on ${new Date(selectedMember.expiryDate).toLocaleDateString('en-IN')}`
+                              : 'No payment made'}
+                          </p>
+                        )}
+                        {selectedMember.status === 'pending' && selectedMember.remainingAmount && selectedMember.remainingAmount > 0 && (
+                          <p className="text-xs text-purple-500 mt-1">
+                            Remaining: ₹{selectedMember.remainingAmount}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1100,13 +1373,15 @@ function MembersContent() {
                     </>
                   ) : (
                     <>
-                      <Button
-                        onClick={() => setEditMode(true)}
-                        className="flex-1 bg-orange-600 hover:bg-orange-700 h-11"
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Profile
-                      </Button>
+                      {isOwner && isManageMode && (
+                        <Button
+                          onClick={() => setEditMode(true)}
+                          className="flex-1 bg-orange-600 hover:bg-orange-700 h-11"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Profile
+                        </Button>
+                      )}
                       <Button
                         onClick={() => {
                           setIsViewingProfile(false);

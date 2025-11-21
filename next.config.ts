@@ -8,6 +8,26 @@ const nextConfig: NextConfig = {
   },
   // Fix for multiple lockfiles warning
   outputFileTracingRoot: __dirname,
+  // Increase API timeout for slower operations
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '5mb',
+    },
+  },
+  // Configure API routes
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0',
+          },
+        ],
+      },
+    ]
+  },
 };
 
 export default nextConfig;

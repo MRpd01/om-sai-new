@@ -163,6 +163,7 @@ function ResetPasswordContent() {
                   type="submit"
                   className="w-full bg-orange-600 hover:bg-orange-700"
                   disabled={loading}
+                  suppressHydrationWarning
                 >
                   {loading ? 'Updating Password...' : 'Update Password'}
                 </Button>

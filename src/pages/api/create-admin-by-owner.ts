@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Check caller role in users table
     const { data: callerProfile, error: profileError } = await adminSupabase
       .from('users')
-      .select('role')
+      .select('role, sub_role')
       .eq('id', callerId)
       .maybeSingle()
 
@@ -35,40 +35,64 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Only mess owners (admin) can create admins' })
     }
 
-    const { email } = req.body
-    if (!email) return res.status(400).json({ error: 'Missing email' })
+    // Only owners can create sub-admins
+    if (callerProfile.sub_role === 'sub_admin') {
+      return res.status(403).json({ error: 'Sub-admins cannot create other admins' })
+    }
 
-    // generate a temporary password
-    const tempPass = 'Tmp' + Math.random().toString(36).slice(2, 10) + 'A1!'
+    const { email, password, name, phone } = req.body
+    if (!email) return res.status(400).json({ error: 'Missing email' })
+    if (!password) return res.status(400).json({ error: 'Missing password' })
+
+    // Use provided password or generate a temporary one
+    const adminPassword = password || 'Tmp' + Math.random().toString(36).slice(2, 10) + 'A1!'
 
     // create new auth user
     const createRes = await adminSupabase.auth.admin.createUser({
       email,
-      password: tempPass,
+      password: adminPassword,
       email_confirm: true,
-      user_metadata: { role: 'admin' }
+      user_metadata: { role: 'admin', full_name: name || email.split('@')[0], phone: phone || '' }
     })
 
     if (createRes.error) return res.status(500).json({ error: createRes.error.message })
 
     const newUser = createRes.data.user
 
-    // upsert profile
+    // Get the mess_id of the calling admin
+    const { data: callerMessData } = await adminSupabase
+      .from('users')
+      .select('mess_id')
+      .eq('id', callerId)
+      .single()
+
+    const messId = callerMessData?.mess_id || null
+
+    // upsert profile - match actual users table schema
+    // Sub-admins created by owner are read-only
     const { error: upsertErr } = await adminSupabase.from('users').upsert([
       {
         id: newUser.id,
-        email: newUser.email,
-        full_name: newUser.user_metadata?.full_name || '',
-        phone: newUser.user_metadata?.phone || '',
+        name: name || email.split('@')[0],
+        mobile_number: phone || '0000000000',
+        parent_mobile: null,
+        photo_url: null,
         role: 'admin',
-        avatar_url: null,
-        language: 'mr'
+        sub_role: 'sub_admin', // Mark as sub-admin (read-only)
+        created_by: callerId, // Track who created this admin
+        mess_id: messId,
+        is_active: true
       }
     ], { onConflict: 'id' })
 
     if (upsertErr) return res.status(500).json({ error: upsertErr.message })
 
-    return res.status(200).json({ success: true, id: newUser.id, email: newUser.email })
+    return res.status(200).json({ 
+      success: true, 
+      id: newUser.id, 
+      email: newUser.email,
+      tempPassword: adminPassword 
+    })
   } catch (err: any) {
     console.error('create-admin-by-owner error:', err)
     return res.status(500).json({ error: 'Internal server error' })

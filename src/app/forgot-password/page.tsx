@@ -139,6 +139,7 @@ export default function ForgotPasswordPage() {
                 type="submit"
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white"
                 disabled={loading}
+                suppressHydrationWarning
               >
                 {loading ? 'Sending...' : 'Send Reset Link'}
               </Button>

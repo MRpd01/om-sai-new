@@ -1,20 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fefefe;
-  --foreground: #000000; /* use true black for maximum contrast */
-  --primary: #ea580c;
+  --background: #fffbf5;
+  --foreground: #2d1810;
+  --primary: #d97706;
   --primary-foreground: #ffffff;
-  --secondary: #fed7aa;
-  --secondary-foreground: #9a3412;
-  --accent: #fb923c;
+  --secondary: #fef3c7;
+  --secondary-foreground: #78350f;
+  --accent: #f59e0b;
   --accent-foreground: #ffffff;
   --muted: #fef3c7;
-  --muted-foreground: #a16207;
+  --muted-foreground: #92400e;
   --card: #ffffff;
-  --card-foreground: #000000;
-  --border: #fde68a;
+  --card-foreground: #2d1810;
+  --border: #fed7aa;
   --input: #fef3c7;
+  
+  /* Food-inspired colors */
+  --saffron: #ff9933;
+  --turmeric: #fbbf24;
+  --curry: #d97706;
+  --masala: #b45309;
+  --chai: #92400e;
+  --cream: #fffaf0;
+  --paneer: #fef3c7;
+  --tomato: #dc2626;
+  --mint: #10b981;
+  --cardamom: #84cc16;
 }
 
 @theme inline {
@@ -224,3 +236,611 @@ input::placeholder, textarea::placeholder {
 .text-shadow-lg {
   text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
 }
+
+/* Premium card effects */
+.premium-card {
+  transition: all 0.3s ease;
+}
+
+.premium-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Authentic food theme animations */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  background-size: 1000px 100%;
+  animation: shimmer 3s infinite;
+}
+
+/* Skeleton Loading Animation (YouTube-style) */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 0%,
+    #e0e0e0 20%,
+    #f0f0f0 40%,
+    #f0f0f0 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.skeleton-dark {
+  background: linear-gradient(
+    90deg,
+    #fef3c7 0%,
+    #fed7aa 20%,
+    #fef3c7 40%,
+    #fef3c7 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+/* Indian food color palette */
+.saffron-gradient {
+  background: linear-gradient(135deg, #ff9933 0%, #ff6600 50%, #cc5500 100%);
+}
+
+.cream-gradient {
+  background: linear-gradient(135deg, #fffaf0 0%, #ffefd5 50%, #ffe4b5 100%);
+}
+
+/* Trust badges and highlights */
+.trust-badge {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3);
+}
+
+/* Rating stars glow effect */
+.star-glow {
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6));
+}
+
+/* 3D Floating Food Animations */
+@keyframes float-3d {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotateY(0deg) rotateX(0deg);
+  }
+  25% {
+    transform: translateY(-30px) translateX(10px) rotateY(180deg) rotateX(10deg);
+  }
+  50% {
+    transform: translateY(-20px) translateX(-10px) rotateY(360deg) rotateX(-10deg);
+  }
+  75% {
+    transform: translateY(-35px) translateX(15px) rotateY(540deg) rotateX(15deg);
+  }
+}
+
+@keyframes float-slow-3d {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg) scale(1);
+  }
+  33% {
+    transform: translateY(-40px) translateX(30px) rotate(120deg) scale(1.1);
+  }
+  66% {
+    transform: translateY(-25px) translateX(-20px) rotate(240deg) scale(0.95);
+  }
+}
+
+@keyframes float-reverse-3d {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(35px) translateX(-25px) rotate(-180deg) scale(1.15);
+  }
+}
+
+@keyframes spin-wobble {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(90deg) scale(1.1);
+  }
+  50% {
+    transform: rotate(180deg) scale(0.9);
+  }
+  75% {
+    transform: rotate(270deg) scale(1.05);
+  }
+}
+
+@keyframes bounce-rotate {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-25px) rotate(90deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(180deg);
+  }
+  75% {
+    transform: translateY(-30px) rotate(270deg);
+  }
+}
+
+@keyframes pulse-glow-3d {
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(255, 152, 0, 0.6));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 40px rgba(255, 152, 0, 1));
+    transform: scale(1.1);
+  }
+}
+
+.animate-float-3d {
+  animation: float-3d 10s ease-in-out infinite;
+}
+
+.animate-float-slow-3d {
+  animation: float-slow-3d 12s ease-in-out infinite;
+}
+
+.animate-float-reverse-3d {
+  animation: float-reverse-3d 9s ease-in-out infinite;
+}
+
+.animate-spin-wobble {
+  animation: spin-wobble 8s ease-in-out infinite;
+}
+
+.animate-bounce-rotate {
+  animation: bounce-rotate 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow-3d {
+  animation: pulse-glow-3d 3s ease-in-out infinite;
+}
+
+/* Floating Elements Styling */
+.food-emoji-3d {
+  font-size: 4rem;
+  position: absolute;
+  opacity: 0.8;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.food-emoji-3d:hover {
+  transform: scale(1.3) rotate(15deg);
+  filter: drop-shadow(0 12px 24px rgba(255, 152, 0, 0.6));
+  opacity: 1;
+}
+
+/* Gradient Text Effects */
+/* Gradient Text */
+.gradient-text-orange {
+  background: linear-gradient(135deg, var(--saffron), var(--curry));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Light 3D Animations */
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.animate-float-gentle {
+  animation: float-gentle 6s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* 3D Card Transform */
+.card-3d-transform {
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  perspective: 1000px;
+}
+
+.card-3d-transform:hover {
+  transform: rotateY(5deg) rotateX(5deg) translateZ(20px);
+}
+
+/* Shine Effect Animation */
+@keyframes shine-sweep {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  animation: shine-sweep 3s infinite;
+}
+
+/* Floating Container */
+.floating-food-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Advanced 3D Perspective Effects */
+@keyframes rotate-3d-axis {
+  0% {
+    transform: perspective(1000px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+  25% {
+    transform: perspective(1000px) rotateX(20deg) rotateY(90deg) rotateZ(10deg);
+  }
+  50% {
+    transform: perspective(1000px) rotateX(-10deg) rotateY(180deg) rotateZ(-5deg);
+  }
+  75% {
+    transform: perspective(1000px) rotateX(15deg) rotateY(270deg) rotateZ(8deg);
+  }
+  100% {
+    transform: perspective(1000px) rotateX(0deg) rotateY(360deg) rotateZ(0deg);
+  }
+}
+
+@keyframes float-orbit {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate(50px, -40px) rotate(90deg) scale(1.2);
+  }
+  50% {
+    transform: translate(0, -80px) rotate(180deg) scale(0.9);
+  }
+  75% {
+    transform: translate(-50px, -40px) rotate(270deg) scale(1.1);
+  }
+}
+
+@keyframes steam-rise {
+  0% {
+    transform: translateY(0) scaleX(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-30px) scaleX(1.5);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-60px) scaleX(2);
+    opacity: 0;
+  }
+}
+
+@keyframes sizzle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+  25% {
+    transform: scale(1.05) rotate(2deg);
+    filter: brightness(1.2);
+  }
+  50% {
+    transform: scale(0.95) rotate(-2deg);
+    filter: brightness(0.9);
+  }
+  75% {
+    transform: scale(1.03) rotate(1deg);
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes spice-burst {
+  0% {
+    transform: scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.3) rotate(180deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    opacity: 0.8;
+  }
+}
+
+.animate-rotate-3d-axis {
+  animation: rotate-3d-axis 15s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+.animate-float-orbit {
+  animation: float-orbit 10s ease-in-out infinite;
+}
+
+.animate-steam-rise {
+  animation: steam-rise 3s ease-out infinite;
+}
+
+.animate-sizzle {
+  animation: sizzle 2s ease-in-out infinite;
+}
+
+.animate-spice-burst {
+  animation: spice-burst 4s ease-in-out infinite;
+}
+
+/* Premium Food Theme Gradients */
+.gradient-food-warm {
+  background: linear-gradient(135deg, #ff9933 0%, #f59e0b 25%, #d97706 50%, #b45309 75%, #92400e 100%);
+}
+
+.gradient-food-spice {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 25%, #dc2626 50%, #991b1b 75%, #7c2d12 100%);
+}
+
+.gradient-food-fresh {
+  background: linear-gradient(135deg, #10b981 0%, #84cc16 25%, #fbbf24 50%, #f59e0b 75%, #d97706 100%);
+}
+
+/* Enhanced Glass Morphism */
+.glass-morphism {
+  background: rgba(255, 251, 245, 0.25);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 153, 51, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+/* 3D Card with Depth */
+.card-3d-depth {
+  transform-style: preserve-3d;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  position: relative;
+}
+
+.card-3d-depth::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 153, 51, 0.3), rgba(217, 119, 6, 0.1));
+  border-radius: inherit;
+  transform: translateZ(-20px);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.card-3d-depth:hover::before {
+  opacity: 1;
+}
+
+.card-3d-depth:hover {
+  transform: perspective(1000px) rotateX(5deg) rotateY(5deg) translateZ(30px);
+  box-shadow: 0 20px 60px rgba(217, 119, 6, 0.4);
+}
+
+/* Floating Animation with Shadows */
+.float-with-shadow {
+  animation: float-shadow 6s ease-in-out infinite;
+}
+
+@keyframes float-shadow {
+  0%, 100% {
+    transform: translateY(0px);
+    filter: drop-shadow(0 10px 20px rgba(217, 119, 6, 0.3));
+  }
+  50% {
+    transform: translateY(-20px);
+    filter: drop-shadow(0 30px 40px rgba(217, 119, 6, 0.5));
+  }
+}
+
+/* Text Effects */
+.text-3d-pop {
+  text-shadow: 
+    0 1px 0 #fbbf24,
+    0 2px 0 #f59e0b,
+    0 3px 0 #d97706,
+    0 4px 0 #b45309,
+    0 5px 10px rgba(0, 0, 0, 0.3);
+  transform: translateZ(20px);
+}
+
+/* Spice Particle Effect */
+.spice-particles {
+  position: relative;
+  overflow: visible;
+}
+
+.spice-particles::after {
+  content: '✨';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 1.5rem;
+  animation: spice-burst 3s ease-in-out infinite;
+}
+
+/* Hot Steam Effect */
+.hot-steam {
+  position: relative;
+}
+
+.hot-steam::before {
+  content: '♨️';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.5rem;
+  animation: steam-rise 3s ease-out infinite;
+}
+
+/* Premium Button Effects */
+.btn-food-premium {
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.btn-food-premium::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.btn-food-premium:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-food-premium:hover {
+  transform: perspective(1000px) translateZ(20px) scale(1.05);
+  box-shadow: 0 15px 40px rgba(217, 119, 6, 0.6);
+}
+
+/* Icon Animations */
+.icon-spin-3d {
+  display: inline-block;
+  animation: icon-spin-3d 3s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+@keyframes icon-spin-3d {
+  0%, 100% {
+    transform: perspective(500px) rotateY(0deg);
+  }
+  50% {
+    transform: perspective(500px) rotateY(180deg);
+  }
+}
+
+/* Authentic Indian Food Colors */
+.bg-saffron { background-color: var(--saffron); }
+.bg-turmeric { background-color: var(--turmeric); }
+.bg-curry { background-color: var(--curry); }
+.bg-masala { background-color: var(--masala); }
+.bg-chai { background-color: var(--chai); }
+.bg-cream { background-color: var(--cream); }
+.bg-paneer { background-color: var(--paneer); }
+
+/* Top loading progress bar */
+.top-progress {
+  width: 40%;
+  background: linear-gradient(90deg, rgba(59,130,246,0.95), rgba(96,165,250,0.95), rgba(147,197,253,0.95));
+  box-shadow: 0 2px 6px rgba(59,130,246,0.3);
+  transform: translateX(-110%);
+  animation: top-progress-slide 1.2s linear infinite;
+}
+
+@keyframes top-progress-slide {
+  0% { transform: translateX(-110%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(110%); }
+}
+
+.text-saffron { color: var(--saffron); }
+.text-curry { color: var(--curry); }
+.text-masala { color: var(--masala); }
+.text-chai { color: var(--chai); }
+
+/* Border Glow Effect */
+.border-glow {
+  border: 2px solid var(--saffron);
+  box-shadow: 
+    0 0 10px rgba(255, 153, 51, 0.5),
+    0 0 20px rgba(255, 153, 51, 0.3),
+    0 0 30px rgba(255, 153, 51, 0.1);
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 10px rgba(255, 153, 51, 0.5),
+      0 0 20px rgba(255, 153, 51, 0.3),
+      0 0 30px rgba(255, 153, 51, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 0 20px rgba(255, 153, 51, 0.8),
+      0 0 30px rgba(255, 153, 51, 0.6),
+      0 0 40px rgba(255, 153, 51, 0.4);
+  }
+}
+

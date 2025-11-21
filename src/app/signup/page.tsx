@@ -582,6 +582,7 @@ function SignupContent() {
                       type="button"
                       onClick={testCamera}
                       className="mb-3 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                      suppressHydrationWarning
                     >
                       Test Camera Access
                     </button>
@@ -597,6 +598,7 @@ function SignupContent() {
                               type="button"
                               onClick={() => { setPhotoFile(null); setPhotoPreview(null); setPhotoSelected(false); setUploadedAvatarUrl(null); }}
                               className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-600 rounded hover:bg-red-100"
+                              suppressHydrationWarning
                             >
                               Remove
                             </button>
@@ -609,6 +611,7 @@ function SignupContent() {
                           type="button"
                           onClick={openCamera}
                           className="px-3 py-1.5 bg-white border border-orange-200 text-orange-600 rounded hover:bg-orange-50"
+                          suppressHydrationWarning
                         >
                           Use Camera
                         </button>
@@ -618,6 +621,7 @@ function SignupContent() {
                             type="button"
                             onClick={captureFromCamera}
                             className="px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded hover:bg-green-100"
+                            suppressHydrationWarning
                           >
                             Capture
                           </button>
@@ -625,6 +629,7 @@ function SignupContent() {
                             type="button"
                             onClick={closeCamera}
                             className="px-3 py-1.5 bg-white border border-orange-200 text-orange-600 rounded hover:bg-orange-50"
+                            suppressHydrationWarning
                           >
                             Close Camera
                           </button>
@@ -684,6 +689,7 @@ function SignupContent() {
                           onClick={uploadCapturedPhoto}
                           disabled={uploadingPhoto}
                           className="px-4 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded hover:bg-blue-100"
+                          suppressHydrationWarning
                         >
                           {uploadingPhoto ? 'Uploading...' : 'Upload Photo'}
                         </button>
@@ -809,6 +815,7 @@ function SignupContent() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-3 text-orange-500 hover:text-orange-700"
+                      suppressHydrationWarning
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -835,6 +842,7 @@ function SignupContent() {
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-3 top-3 text-orange-500 hover:text-orange-700"
+                      suppressHydrationWarning
                     >
                       {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -867,6 +875,7 @@ function SignupContent() {
                 type="submit"
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white"
                 disabled={loading}
+                suppressHydrationWarning
               >
                 {loading ? 
                   (currentRole === 'user' ? 'Creating account...' : 'Submitting request...') : 

@@ -8,6 +8,7 @@ import type { User, Session, AuthError } from '@supabase/supabase-js';
 interface AppUser extends User {
   user_metadata: {
     role?: string;
+    sub_role?: 'owner' | 'sub_admin';
     full_name?: string;
     phone?: string;
     avatar?: string;
@@ -41,16 +42,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select('role, name, mobile_number, parent_mobile, photo_url, mess_id')
+        .select('role, sub_role, name, mobile_number, parent_mobile, photo_url, mess_id')
         .eq('id', sessionUser.id)
         .maybeSingle();
 
-      if (profile && !profileError) {
+      if (profileError) {
+        // Check if it's an empty error object (common for RLS or no data)
+        const hasErrorContent = profileError && (profileError.message || profileError.code || profileError.details);
+        
+        if (hasErrorContent) {
+          console.warn('⚠️ Profile fetch issue:', {
+            message: profileError.message || 'No message',
+            code: profileError.code || 'No code',
+            hint: profileError.hint || 'No hint',
+            userId: sessionUser.id
+          });
+        }
+        
+        // Return user with metadata from session as fallback
+        console.log('ℹ️ Using session metadata as fallback for user:', sessionUser.id);
+        return sessionUser as AppUser;
+      }
+
+      if (profile) {
+        console.log('✅ Profile merged successfully for user:', sessionUser.id);
         return {
           ...(sessionUser as AppUser),
           user_metadata: {
             ...(sessionUser as AppUser).user_metadata,
-            role: profile.role || (sessionUser as AppUser).user_metadata?.role,
+            role: profile.role || (sessionUser as AppUser).user_metadata?.role || 'user',
+            sub_role: profile.sub_role || 'owner', // Default to owner if not set
             full_name: profile.name || (sessionUser as AppUser).user_metadata?.full_name,
             phone: profile.mobile_number || (sessionUser as AppUser).user_metadata?.phone,
             parent_mobile: profile.parent_mobile || (sessionUser as AppUser).user_metadata?.parent_mobile,
@@ -59,9 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } as AppUser;
       }
-    } catch (e) {
-      console.error('Error fetching profile:', e);
+    } catch (e: any) {
+      // Silently handle network errors - don't show in console unless it's critical
+      if (e?.message && !e.message.includes('Failed to fetch')) {
+        console.warn('⚠️ Exception fetching profile (continuing with session data):', {
+          name: e?.name || 'Unknown',
+          message: e?.message || 'No message',
+          userId: sessionUser.id
+        });
+      }
     }
+    
+    // Always return at least the session user
     return sessionUser as AppUser;
   };
 
@@ -78,14 +108,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Fetch profile asynchronously without blocking
             fetchAndMergeProfile(session.user).then(mergedUser => {
               if (isMounted) setUser(mergedUser);
+            }).catch(err => {
+              // Silently handle profile fetch errors
+              if (isMounted) setUser(session.user as AppUser);
             });
           } else {
             setUser(null);
           }
           setLoading(false);
         }
-      } catch (error) {
-        console.error('Error getting initial session:', error);
+      } catch (error: any) {
+        // Only log non-network errors
+        if (error?.message && !error.message.includes('Failed to fetch')) {
+          console.error('Error getting initial session:', error);
+        }
         if (isMounted) {
           setLoading(false);
         }
@@ -216,10 +252,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Check if error is empty object (RLS policy blocking INSERT)
-        const errorKeys = Object.keys(error);
-        if (errorKeys.length === 0 || !error.message) {
-          console.warn('⚠️ Profile creation blocked by RLS policy. Attempting via API...');
+        // Check if error is empty object or has no meaningful content
+        const hasErrorContent = error && (error.message || error.code || error.details);
+        
+        if (!hasErrorContent) {
+          console.warn('⚠️ Profile creation blocked (likely RLS policy). Attempting via API...');
           
           // Try creating via API endpoint (uses service role to bypass RLS)
           try {
@@ -234,28 +271,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return;
             } else {
               const apiError = await response.json();
-              console.error('❌ API profile creation failed:', apiError);
+              console.warn('⚠️ API profile creation issue:', apiError);
             }
           } catch (apiError) {
-            console.error('❌ API call failed:', apiError);
+            console.warn('⚠️ API call issue:', apiError);
           }
           return;
         }
 
         // Only log if it's a real error with actual error data
-        console.error('❌ Error creating user profile:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
+        console.warn('⚠️ Profile creation issue:', {
+          code: error.code || 'No code',
+          message: error.message || 'No message',
+          hint: error.hint || 'No hint',
           userId: user.id
         });
       } else {
         console.log('✅ User profile created successfully:', data);
       }
     } catch (error: any) {
-      console.error('❌ Exception while creating user profile:', {
-        message: error?.message,
+      console.warn('⚠️ Exception while creating user profile (continuing):', {
+        name: error?.name || 'Unknown',
+        message: error?.message || 'No message',
         userId: user.id
       });
     }

@@ -40,20 +40,23 @@ const mockAdmins = [
 
 export default function ManageAdminsPage() {
   const { user, session } = useAuth();
-  const [allocateEmail, setAllocateEmail] = useState('');
-  const [allocatePlan, setAllocatePlan] = useState('double_time');
-  const [allocateJoiningDate, setAllocateJoiningDate] = useState(new Date().toISOString().split('T')[0]);
-  const [allocatePaymentAmount, setAllocatePaymentAmount] = useState<number | ''>('');
-  const [allocatePaymentType, setAllocatePaymentType] = useState<'full' | 'advance'>('full');
-  const [allocating, setAllocating] = useState(false);
   const [admins, setAdmins] = useState(mockAdmins);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAdminEmail.trim()) return;
+    if (!newAdminEmail.trim() || !newAdminPassword.trim()) {
+      alert('Please enter both email and password');
+      return;
+    }
+
+    if (newAdminPassword.length < 6) {
+      alert('Password must be at least 6 characters long');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -63,7 +66,10 @@ export default function ManageAdminsPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token}`
         },
-        body: JSON.stringify({ email: newAdminEmail })
+        body: JSON.stringify({ 
+          email: newAdminEmail,
+          password: newAdminPassword
+        })
       });
 
       const data = await resp.json();
@@ -85,7 +91,9 @@ export default function ManageAdminsPage() {
 
       setAdmins([...admins, newAdmin]);
       setNewAdminEmail('');
+      setNewAdminPassword('');
       setShowAddForm(false);
+      alert('Admin added successfully! They can now login with the provided credentials.');
     } catch (err: any) {
       alert('Failed to add admin: ' + (err?.message || err));
     } finally {
@@ -143,134 +151,58 @@ export default function ManageAdminsPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Admin: Allocate subscription by user email */}
-        <Card className="mb-6 border-orange-200">
-          <CardHeader>
-            <CardTitle className="text-orange-900">Allocate / Update Subscription by Email</CardTitle>
-            <CardDescription>
-              Enter a user's email to assign or update their mess subscription (admin only).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-              <input
-                type="email"
-                placeholder="User email"
-                value={allocateEmail}
-                onChange={(e) => setAllocateEmail(e.target.value)}
-                className="p-2 border border-orange-200 rounded-md"
-              />
-              <select
-                value={allocatePlan}
-                onChange={(e) => setAllocatePlan(e.target.value)}
-                className="p-2 border border-orange-200 rounded-md"
-              >
-                <option value="double_time">Double Time - ₹2600</option>
-                <option value="full_month">Full Month - ₹2600</option>
-                <option value="single_time">Single Time - ₹1500</option>
-                <option value="half_month">Half Month - ₹1300</option>
-              </select>
-              <input
-                type="date"
-                value={allocateJoiningDate}
-                onChange={(e) => setAllocateJoiningDate(e.target.value)}
-                className="p-2 border border-orange-200 rounded-md"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-              <select
-                value={allocatePaymentType}
-                onChange={(e) => setAllocatePaymentType(e.target.value as any)}
-                className="p-2 border border-orange-200 rounded-md"
-              >
-                <option value="full">Full Payment</option>
-                <option value="advance">Advance</option>
-              </select>
-              <input
-                type="number"
-                placeholder="Payment amount (optional)"
-                value={allocatePaymentAmount as any}
-                onChange={(e) => setAllocatePaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className="p-2 border border-orange-200 rounded-md"
-                min={0}
-              />
-              <div />
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={async () => {
-                  if (!allocateEmail.trim()) { alert('Enter user email'); return; }
-                  setAllocating(true);
-                  try {
-                    const resp = await fetch('/api/admin-allocate-subscription', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${session?.access_token}`
-                      },
-                      body: JSON.stringify({
-                        userEmail: allocateEmail.trim(),
-                        plan: allocatePlan,
-                        joiningDate: allocateJoiningDate,
-                        paymentAmount: allocatePaymentAmount || 0,
-                        paymentType: allocatePaymentType
-                      })
-                    });
-
-                    const data = await resp.json();
-                    if (!resp.ok) throw new Error(data.error || 'Failed to allocate');
-                    alert('Subscription allocated/updated successfully');
-                    // reset
-                    setAllocateEmail('');
-                    setAllocatePaymentAmount('');
-                  } catch (err: any) {
-                    alert('Allocation failed: ' + (err?.message || err));
-                  } finally {
-                    setAllocating(false);
-                  }
-                }}
-                disabled={allocating}
-                className="bg-orange-600 hover:bg-orange-700"
-              >
-                {allocating ? 'Allocating...' : 'Allocate / Update'}
-              </Button>
-              <Button variant="outline" onClick={() => { setAllocateEmail(''); setAllocatePaymentAmount(''); }}>
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Add Admin Form */}
         {showAddForm && (
           <Card className="mb-8 border-orange-200">
             <CardHeader>
               <CardTitle className="text-orange-900">Add New Admin</CardTitle>
               <CardDescription>
-                Enter the email address of the user you want to make an admin
+                Create a new admin account with email and password. They can login and manage members data.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddAdmin} className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-orange-900 mb-2">
+                      Admin Email <span className="text-red-500">*</span>
+                    </label>
                     <Input
                       type="email"
-                      placeholder="Enter email address"
+                      placeholder="admin@example.com"
                       value={newAdminEmail}
                       onChange={(e) => setNewAdminEmail(e.target.value)}
                       className="border-orange-200 focus:border-orange-400"
                       required
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-orange-900 mb-2">
+                      Password <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="Enter password (min. 6 characters)"
+                      value={newAdminPassword}
+                      onChange={(e) => setNewAdminPassword(e.target.value)}
+                      className="border-orange-200 focus:border-orange-400"
+                      minLength={6}
+                      required
+                    />
+                    <p className="text-xs text-orange-600 mt-1">
+                      Password must be at least 6 characters long
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
                   <Button 
                     type="submit" 
                     disabled={loading}
                     className="bg-orange-600 hover:bg-orange-700"
+                    suppressHydrationWarning
                   >
-                    {loading ? 'Adding...' : 'Add Admin'}
+                    <Plus className="h-4 w-4 mr-2" />
+                    {loading ? 'Creating Admin...' : 'Create Admin'}
                   </Button>
                   <Button 
                     type="button" 
@@ -278,8 +210,10 @@ export default function ManageAdminsPage() {
                     onClick={() => {
                       setShowAddForm(false);
                       setNewAdminEmail('');
+                      setNewAdminPassword('');
                     }}
                     className="border-orange-200 text-orange-600"
+                    suppressHydrationWarning
                   >
                     Cancel
                   </Button>
@@ -374,16 +308,16 @@ export default function ManageAdminsPage() {
                 <ChefHat className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-blue-900 mb-2">Admin Permissions</h3>
+                <h3 className="font-semibold text-blue-900 mb-2">Admin Access & Permissions</h3>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• Manage mess members and their subscriptions</li>
-                  <li>• View and manage payments</li>
-                  <li>• Update menu and mess settings</li>
-                  <li>• Send notifications to members</li>
-                  <li>• View reports and analytics</li>
+                  <li>• View and manage all mess members</li>
+                  <li>• Update member information and subscriptions</li>
+                  <li>• Access member data for administrative purposes</li>
+                  <li>• Perform CRUD operations on member records</li>
+                  <li>• Monitor mess activities and member status</li>
                 </ul>
-                <p className="text-xs text-blue-600 mt-2">
-                  Note: Only the mess owner can add or remove admins
+                <p className="text-xs text-blue-600 mt-3 font-medium">
+                  🔒 Security Note: Only the mess owner can add or remove admin accounts. Admins receive their own login credentials to access the system.
                 </p>
               </div>
             </div>

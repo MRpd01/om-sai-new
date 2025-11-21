@@ -13,7 +13,69 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase environment variables are not configured');
 }
 
-// Create Supabase client with retry configuration
+// Log successful configuration (only in development)
+if (process.env.NODE_ENV === 'development') {
+  console.log('✅ Supabase client configured:', {
+    url: supabaseUrl,
+    keyPrefix: supabaseAnonKey.substring(0, 20) + '...'
+  });
+}
+
+// Enhanced retry logic with exponential backoff
+async function fetchWithRetry(url: RequestInfo | URL, options: RequestInit = {}, maxRetries = 3): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // Check if response is ok, if not throw to trigger retry
+      if (!response.ok && attempt < maxRetries - 1) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response;
+    } catch (error: any) {
+      lastError = error;
+      const isLastAttempt = attempt === maxRetries - 1;
+      
+      // Don't retry on abort errors or network failures on last attempt
+      if (isLastAttempt || error.name === 'AbortError') {
+        if (isLastAttempt) {
+          console.error('❌ Supabase fetch failed after retries:', {
+            url: typeof url === 'string' ? url : url.toString(),
+            errorName: error?.name || 'Unknown',
+            errorMessage: error?.message || String(error),
+          });
+        }
+        throw error;
+      }
+      
+      // Only retry on network errors or 5xx server errors
+      const shouldRetry = error.name === 'TypeError' || (error.message && error.message.includes('HTTP 5'));
+      
+      if (shouldRetry) {
+        const waitTime = Math.min(1000 * Math.pow(2, attempt), 5000); // Max 5s wait
+        console.warn(`🔄 Retry ${attempt + 1}/${maxRetries} in ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        throw error;
+      }
+    }
+  }
+  
+  throw lastError || new Error('Fetch failed after retries');
+}
+
+// Create Supabase client with optimized configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -21,25 +83,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true
   },
   global: {
-    fetch: (url, options = {}) => {
-      // Add retry logic for network failures
-      return fetch(url, {
-        ...options,
-        // Add timeout
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      }).catch(error => {
-        console.error('🔄 Supabase fetch failed, retrying...', {
-          url,
-          error: error.message
-        });
-        // Retry once after 1 second
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            fetch(url, options).then(resolve).catch(reject);
-          }, 1000);
-        });
-      });
+    headers: {
+      'Connection': 'keep-alive'
     }
+  },
+  db: {
+    schema: 'public'
   }
 });
 
@@ -49,6 +98,11 @@ export function createSupabaseBrowserClient() {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true
+    },
+    global: {
+      headers: {
+        'Connection': 'keep-alive'
+      }
     }
   });
 }
@@ -115,4 +169,20 @@ export async function createPayment(user_id: string, mess_id: string, amount: nu
 // Create a membership record
 export async function createMembership(user_id: string, mess_id: string, subscription_type: string, joining_date: string, expiry_date: string) {
   return supabase.from('mess_members').insert([{ user_id, mess_id, subscription_type, joining_date, expiry_date, payment_status: 'success', is_active: true }]);
+}
+
+// Health check utility
+export async function checkSupabaseConnection() {
+  try {
+    const { data, error } = await supabase.from('messes').select('count').limit(1).single();
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is fine
+      console.error('❌ Supabase health check failed:', error);
+      return { connected: false, error };
+    }
+    console.log('✅ Supabase connection healthy');
+    return { connected: true, data };
+  } catch (error) {
+    console.error('❌ Supabase health check exception:', error);
+    return { connected: false, error };
+  }
 }

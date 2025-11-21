@@ -2,66 +2,45 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChefHat, Users, LogIn, UserPlus, ChevronDown, MapPin, Menu, X, User, LogOut, Settings } from "lucide-react";
+import { 
+  ChefHat, 
+  Users, 
+  LogIn, 
+  UserPlus, 
+  ChevronDown, 
+  MapPin, 
+  Menu, 
+  X, 
+  User, 
+  LogOut, 
+  Settings,
+  Star,
+  Utensils,
+  PartyPopper,
+  DollarSign,
+  Sparkles,
+  Package,
+  Mail,
+  Phone,
+  Info,
+  AlertCircle,
+  Truck,
+  Award,
+  UtensilsCrossed,
+  Calendar
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import GoogleMap from "@/components/GoogleMap";
+import Image from "next/image";
 
 export default function Home() {
   const router = useRouter();
   const { user, signOut, loading } = useAuth();
-  const [language, setLanguage] = useState<'en' | 'mr'>('mr'); // Default to Marathi
   const [isSignInDropdownOpen, setIsSignInDropdownOpen] = useState(false);
   const [isSignUpDropdownOpen, setIsSignUpDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-
-  const content: Record<'en' | 'mr', {
-    title: string;
-    subtitle: string;
-    description: string;
-    signIn: string;
-    signUp: string;
-    memberSignIn: string;
-    ownerSignIn: string;
-    memberSignUp: string;
-    ownerSignUp: string;
-    features: string;
-    about: string;
-    contact: string;
-    getStarted: string;
-  }> = {
-    en: {
-      title: "Welcome to OM Sai Bhojnalay",
-      subtitle: "Powerful Mess Management for Owners",
-      description: "Run your mess like a business — manage subscriptions, staff, menus and payments from a single dashboard. Built for mess owners to simplify operations and grow revenue.",
-      signIn: "Sign In",
-      signUp: "Sign Up",
-      memberSignIn: "Sign In as Member",
-      ownerSignIn: "Sign In as Mess Owner",
-      memberSignUp: "Join as Member",
-      ownerSignUp: "Register as Mess Owner",
-      features: "Features",
-      about: "About",
-      contact: "Contact",
-      getStarted: "Get Started Today"
-    },
-    mr: {
-      title: "ओम साई भोजनालयात स्वागत आहे",
-      subtitle: "मालकांसाठी सामर्थ्यशाली मेस व्यवस्थापन",
-      description: "तुमचे मेस व्यावसायिक दृष्टिकोनातून चालवा — सदस्यता, कर्मचारी, मेनू आणि पेमेंट्स एका डॅशबोर्डवर व्यवस्थापित करा. मेस मालकांसाठी ऑपरेशन्स सुलभ करण्यासाठी आणि महसूल वाढविण्यासाठी तयार केलेले.",
-      signIn: "साइन इन",
-      signUp: "साइन अप",
-      memberSignIn: "सदस्य म्हणून साइन इन",
-      ownerSignIn: "मेस मालक म्हणून साइन इन",
-      memberSignUp: "सदस्य म्हणून सामील व्हा",
-      ownerSignUp: "मेस मालक म्हणून नोंदणी करा",
-      features: "वैशिष्ट्ये",
-      about: "आमच्याबद्दल",
-      contact: "संपर्क",
-      getStarted: "आज सुरुवात करा"
-    }
-  };
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -89,13 +68,20 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen hero-bg relative">
-      {/* Background overlay for better text readability - responsive opacity */}
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-50/70 via-amber-50/60 to-yellow-50/50 sm:from-orange-50/60 sm:via-amber-50/50 sm:to-yellow-50/40 lg:from-orange-50/50 lg:via-amber-50/40 lg:to-yellow-50/30"></div>
+    <div className="min-h-screen hero-bg relative bg-gradient-to-br from-cream via-orange-50/80 to-paneer">
+      {/* Background overlay with food-themed patterns */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-saffron/5 via-turmeric/5 to-curry/5"></div>
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255, 153, 51, 0.4) 0%, transparent 50%),
+                           radial-gradient(circle at 80% 80%, rgba(251, 191, 36, 0.4) 0%, transparent 50%),
+                           radial-gradient(circle at 40% 20%, rgba(217, 119, 6, 0.3) 0%, transparent 50%)`
+        }}></div>
+      </div>
       
       {/* Content wrapper */}
       <div className="relative z-10">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-md shadow-sm border-b border-orange-200/50">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-md border-b-2 border-orange-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="flex justify-between items-center py-3 lg:py-4">
             {/* Logo */}
@@ -103,8 +89,14 @@ export default function Home() {
               className="flex items-center space-x-2 lg:space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => router.push('/')}
             >
-              <div className="p-1.5 lg:p-2 bg-orange-600 rounded-lg">
-                <ChefHat className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
+              <div className="relative h-10 w-10 lg:h-12 lg:w-12">
+                <Image 
+                  src="/images/BrandLogo.png" 
+                  alt="Om Sai Bhojnalay Logo" 
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-900">ओम साई भोजनालय</h1>
             </div>
@@ -112,41 +104,17 @@ export default function Home() {
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8">
               <a href="#features" className="text-orange-700 hover:text-orange-900 font-medium transition-colors">
-                {content[language].features}
+                Features
               </a>
               <a href="#about" className="text-orange-700 hover:text-orange-900 font-medium transition-colors">
-                {content[language].about}
+                About
               </a>
               <a href="#location" className="text-orange-700 hover:text-orange-900 font-medium transition-colors">
-                {language === 'en' ? 'Location' : 'स्थान'}
+                Location
               </a>
               <a href="#contact" className="text-orange-700 hover:text-orange-900 font-medium transition-colors">
-                {content[language].contact}
+                Contact
               </a>
-
-              {/* Language Toggle */}
-              <div className="flex items-center space-x-2 bg-orange-100 rounded-lg p-1">
-                <button
-                  onClick={() => setLanguage('mr')}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                    language === 'mr' 
-                      ? 'bg-orange-600 text-white' 
-                      : 'text-orange-600 hover:bg-orange-200'
-                  }`}
-                >
-                  🇮🇳 मराठी
-                </button>
-                <button
-                  onClick={() => setLanguage('en')}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                    language === 'en' 
-                      ? 'bg-orange-600 text-white' 
-                      : 'text-orange-600 hover:bg-orange-200'
-                  }`}
-                >
-                  🇺🇸 English
-                </button>
-              </div>
             </nav>
 
             {/* Desktop Auth Buttons or User Profile */}
@@ -230,10 +198,10 @@ export default function Home() {
                           <ChefHat className="h-4 w-4 text-orange-600" />
                           <div>
                             <div className="font-medium">
-                              {language === 'en' ? 'Dashboard' : 'डॅशबोर्ड'}
+                              Dashboard
                             </div>
                             <div className="text-xs text-orange-600">
-                              {language === 'en' ? 'Manage your account' : 'तुमचे खाते व्यवस्थापित करा'}
+                              Manage your account
                             </div>
                           </div>
                         </button>
@@ -248,10 +216,10 @@ export default function Home() {
                           <Settings className="h-4 w-4 text-orange-600" />
                           <div>
                             <div className="font-medium">
-                              {language === 'en' ? 'Profile Settings' : 'प्रोफाइल सेटिंग्ज'}
+                              Profile Settings
                             </div>
                             <div className="text-xs text-orange-600">
-                              {language === 'en' ? 'Update your information' : 'तुमची माहिती अपडेट करा'}
+                              Update your information
                             </div>
                           </div>
                         </button>
@@ -266,10 +234,10 @@ export default function Home() {
                           <ChefHat className="h-4 w-4 text-orange-600" />
                           <div>
                             <div className="font-medium">
-                              {language === 'en' ? 'Menu' : 'मेनू'}
+                              Menu
                             </div>
                             <div className="text-xs text-orange-600">
-                              {language === 'en' ? 'View today\'s menu' : 'आजचा मेनू पहा'}
+                              View today's menu
                             </div>
                           </div>
                         </button>
@@ -284,10 +252,10 @@ export default function Home() {
                           <Users className="h-4 w-4 text-orange-600" />
                           <div>
                             <div className="font-medium">
-                              {language === 'en' ? 'Members' : 'सदस्य'}
+                              Members
                             </div>
                             <div className="text-xs text-orange-600">
-                              {language === 'en' ? 'View mess members' : 'मेस सदस्य पहा'}
+                              View mess members
                             </div>
                           </div>
                         </button>
@@ -306,10 +274,10 @@ export default function Home() {
                           <LogOut className="h-4 w-4 text-red-600" />
                           <div>
                             <div className="font-medium">
-                              {language === 'en' ? 'Sign Out' : 'साइन आउट'}
+                              Sign Out
                             </div>
                             <div className="text-xs text-red-600">
-                              {language === 'en' ? 'Logout from your account' : 'तुमच्या खात्यातून लॉगआउट करा'}
+                              Logout from your account
                             </div>
                           </div>
                         </button>
@@ -328,7 +296,7 @@ export default function Home() {
                       onClick={() => router.push('/login?role=user')}
                     >
                       <LogIn className="h-4 w-4 mr-2" />
-                      {content[language].signIn}
+                      {"Sign In"}
                     </Button>
 
                     {/* small chevron to open dropdown for role choices */}
@@ -355,7 +323,7 @@ export default function Home() {
                         >
                           <Users className="h-4 w-4 text-orange-600" />
                           <div>
-                            <div className="font-medium">{content[language].memberSignIn}</div>
+                            <div className="font-medium">{"Member Sign In"}</div>
                             <div className="text-xs text-orange-600">Access your mess account</div>
                           </div>
                         </button>
@@ -368,7 +336,7 @@ export default function Home() {
                         >
                           <ChefHat className="h-4 w-4 text-orange-600" />
                           <div>
-                            <div className="font-medium">{content[language].ownerSignIn}</div>
+                            <div className="font-medium">{"Owner/Admin Sign In"}</div>
                             <div className="text-xs text-orange-600">Manage your mess operations</div>
                           </div>
                         </button>
@@ -383,7 +351,7 @@ export default function Home() {
                       onClick={() => router.push('/signup?role=user')}
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
-                      {content[language].signUp}
+                      {"Sign Up"}
                     </Button>
 
                     <button
@@ -409,7 +377,7 @@ export default function Home() {
                         >
                           <Users className="h-4 w-4 text-orange-600" />
                           <div>
-                            <div className="font-medium">{content[language].memberSignUp}</div>
+                            <div className="font-medium">{"Join as Member"}</div>
                             <div className="text-xs text-orange-600">Start your mess membership</div>
                           </div>
                         </button>
@@ -422,7 +390,7 @@ export default function Home() {
                         >
                           <ChefHat className="h-4 w-4 text-orange-600" />
                           <div>
-                            <div className="font-medium">{content[language].ownerSignUp}</div>
+                            <div className="font-medium">{"Register as Owner"}</div>
                             <div className="text-xs text-orange-600">Setup your mess business</div>
                           </div>
                         </button>
@@ -497,16 +465,16 @@ export default function Home() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center space-x-3 px-3 py-2 text-orange-700 hover:text-orange-900 hover:bg-orange-50 rounded-lg transition-colors"
                   >
-                    <span>⭐</span>
-                    <span className="font-medium">{content[language].features}</span>
+                    <Star className="h-4 w-4" />
+                    <span className="font-medium">{"Features"}</span>
                   </a>
                   <a 
                     href="#about" 
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center space-x-3 px-3 py-2 text-orange-700 hover:text-orange-900 hover:bg-orange-50 rounded-lg transition-colors"
                   >
-                    <span>ℹ️</span>
-                    <span className="font-medium">{content[language].about}</span>
+                    <Info className="h-4 w-4" />
+                    <span className="font-medium">{"About"}</span>
                   </a>
                   <a 
                     href="#location" 
@@ -514,43 +482,16 @@ export default function Home() {
                     className="flex items-center space-x-3 px-3 py-2 text-orange-700 hover:text-orange-900 hover:bg-orange-50 rounded-lg transition-colors"
                   >
                     <MapPin className="h-4 w-4" />
-                    <span className="font-medium">{language === 'en' ? 'Location' : 'स्थान'}</span>
+                    <span className="font-medium">Location</span>
                   </a>
                   <a 
                     href="#contact" 
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center space-x-3 px-3 py-2 text-orange-700 hover:text-orange-900 hover:bg-orange-50 rounded-lg transition-colors"
                   >
-                    <span>📞</span>
-                    <span className="font-medium">{content[language].contact}</span>
+                    <Phone className="h-4 w-4" />
+                    <span className="font-medium">{"Contact"}</span>
                   </a>
-                </div>
-
-                {/* Language Toggle */}
-                <div className="pt-3 border-t border-orange-200">
-                  <p className="text-sm font-medium text-orange-700 mb-2">Language / भाषा</p>
-                  <div className="flex items-center space-x-2 bg-orange-100 rounded-lg p-1 w-fit">
-                    <button
-                      onClick={() => setLanguage('mr')}
-                      className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                        language === 'mr' 
-                          ? 'bg-orange-600 text-white' 
-                          : 'text-orange-600 hover:bg-orange-200'
-                      }`}
-                    >
-                      🇮🇳 मराठी
-                    </button>
-                    <button
-                      onClick={() => setLanguage('en')}
-                      className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                        language === 'en' 
-                          ? 'bg-orange-600 text-white' 
-                          : 'text-orange-600 hover:bg-orange-200'
-                      }`}
-                    >
-                      🇺🇸 English
-                    </button>
-                  </div>
                 </div>
 
                 {/* Account Actions */}
@@ -570,10 +511,10 @@ export default function Home() {
                           <ChefHat className="h-4 w-4" />
                           <div>
                             <div className="font-medium">
-                              {language === 'en' ? 'Dashboard' : 'डॅशबोर्ड'}
+                              Dashboard
                             </div>
                             <div className="text-xs text-orange-200">
-                              {language === 'en' ? 'Manage your account' : 'तुमचे खाते व्यवस्थापित करा'}
+                              Manage your account
                             </div>
                           </div>
                         </button>
@@ -588,10 +529,10 @@ export default function Home() {
                           <Settings className="h-4 w-4 text-orange-600" />
                           <div>
                             <div className="font-medium text-orange-900">
-                              {language === 'en' ? 'Profile Settings' : 'प्रोफाइल सेटिंग्ज'}
+                              Profile Settings
                             </div>
                             <div className="text-xs text-orange-600">
-                              {language === 'en' ? 'Update your information' : 'तुमची माहिती अपडेट करा'}
+                              Update your information
                             </div>
                           </div>
                         </button>
@@ -607,10 +548,10 @@ export default function Home() {
                           <LogOut className="h-4 w-4 text-red-600" />
                           <div>
                             <div className="font-medium text-red-700">
-                              {language === 'en' ? 'Sign Out' : 'साइन आउट'}
+                              Sign Out
                             </div>
                             <div className="text-xs text-red-600">
-                              {language === 'en' ? 'Logout from your account' : 'तुमच्या खात्यातून लॉगआउट करा'}
+                              Logout from your account
                             </div>
                           </div>
                         </button>
@@ -632,7 +573,7 @@ export default function Home() {
                         >
                           <Users className="h-4 w-4 text-orange-600" />
                           <div>
-                            <div className="font-medium text-orange-900">{content[language].memberSignIn}</div>
+                            <div className="font-medium text-orange-900">{"Member Sign In"}</div>
                             <div className="text-xs text-orange-600">Access your mess account</div>
                           </div>
                         </button>
@@ -645,7 +586,7 @@ export default function Home() {
                         >
                           <ChefHat className="h-4 w-4 text-orange-600" />
                           <div>
-                            <div className="font-medium text-orange-900">{content[language].ownerSignIn}</div>
+                            <div className="font-medium text-orange-900">{"Owner/Admin Sign In"}</div>
                             <div className="text-xs text-orange-600">Manage your mess operations</div>
                           </div>
                         </button>
@@ -662,7 +603,7 @@ export default function Home() {
                         >
                           <Users className="h-4 w-4" />
                           <div>
-                            <div className="font-medium">{content[language].memberSignUp}</div>
+                            <div className="font-medium">{"Join as Member"}</div>
                             <div className="text-xs text-orange-200">Start your mess membership</div>
                           </div>
                         </button>
@@ -675,7 +616,7 @@ export default function Home() {
                         >
                           <ChefHat className="h-4 w-4" />
                           <div>
-                            <div className="font-medium">{content[language].ownerSignUp}</div>
+                            <div className="font-medium">{"Register as Owner"}</div>
                             <div className="text-xs text-orange-200">Setup your mess business</div>
                           </div>
                         </button>
@@ -690,128 +631,204 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <main className="flex-1 pt-16 sm:pt-20 lg:pt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-20">
+      <main className="flex-1 pt-16 sm:pt-20 lg:pt-24 relative overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image 
+            src="/images/#thali#indianfood.jpeg" 
+            alt="Delicious Indian Thali" 
+            fill
+            className="object-cover opacity-30"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-cream/80 via-paneer/80 to-orange-50/80"></div>
+        </div>
+
+        {/* Subtle floating decorative elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 z-10">
+          <div className="absolute top-20 left-10 text-4xl animate-float-gentle">🍛</div>
+          <div className="absolute top-40 right-20 text-3xl animate-float-gentle" style={{animationDelay: '1s'}}>🥘</div>
+          <div className="absolute bottom-40 left-20 text-3xl animate-float-gentle" style={{animationDelay: '2s'}}>🍚</div>
+          <div className="absolute bottom-20 right-10 text-4xl animate-float-gentle" style={{animationDelay: '1.5s'}}>🫓</div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-20 relative z-20">
           <div className="text-center">
-            <div className="flex justify-center mb-6 sm:mb-8">
-              <div className="p-4 sm:p-5 lg:p-6 bg-orange-600 rounded-full shadow-lg">
-                <ChefHat className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 text-white" />
-              </div>
-            </div>
-            
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-orange-900 mb-4 sm:mb-6 leading-tight px-2">
-              {content[language].title}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-black mb-4 sm:mb-6 leading-tight">
+              {"Welcome to OM Sai Bhojnalay"}
             </h1>
             
-            <h2 className="text-lg sm:text-xl lg:text-2xl text-orange-700 mb-6 sm:mb-8 max-w-3xl mx-auto font-medium px-4">
-              {content[language].subtitle}
+            <h2 className="text-lg sm:text-xl lg:text-2xl text-black mb-6 sm:mb-8 font-medium">
+              {"Authentic Home-Style Meals in Chhatrapati Sambhajinagar"}
             </h2>
             
-            <p className="text-base sm:text-lg text-orange-600 mb-8 sm:mb-10 lg:mb-12 max-w-4xl mx-auto leading-relaxed px-4">
-              {content[language].description}
+            <p className="text-base sm:text-lg text-black mb-8 sm:mb-10 leading-relaxed font-medium max-w-4xl mx-auto">
+              {"Experience the taste of home-cooked food with our nutritious and delicious meals. Perfect for students and working professionals looking for quality mess services."}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center px-4">
+            {/* Rating Display */}
+            <div className="flex justify-center items-center mb-6 sm:mb-8">
+              <div className="flex items-center space-x-2 glass-morphism px-6 py-3 rounded-full shadow-lg border-2 border-saffron">
+                <div className="flex items-center space-x-1">
+                  <Star className="h-5 w-5 fill-turmeric text-turmeric" />
+                  <Star className="h-5 w-5 fill-turmeric text-turmeric" />
+                  <Star className="h-5 w-5 fill-turmeric text-turmeric" />
+                  <Star className="h-5 w-5 fill-turmeric text-turmeric" />
+                  <Star className="h-5 w-5 fill-gray-300 text-gray-300" />
+                </div>
+                <span className="text-black font-bold text-lg">4.5/5</span>
+                <span className="text-black text-sm font-semibold">
+                  (by our happy customers)
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center">
               {/* Hide sign-up buttons when user is already signed in */}
               {!loading && !user ? (
                 <>
                   <Button
                     onClick={() => router.push('/signup?role=user')}
                     size="lg"
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-xl transition-all"
+                    className="bg-gradient-food-warm text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-2xl transition-all hover:scale-105 hover:-translate-y-1"
                   >
                     <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
-                    {content[language].getStarted}
+                    {"Get Started"}
                   </Button>
                   
                   <Button
                     onClick={() => router.push('/signup?role=admin')}
                     size="lg"
                     variant="outline"
-                    className="border-2 border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-xl transition-all"
+                    className="border-2 border-curry bg-white/90 text-curry hover:bg-gradient-food-warm hover:text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-2xl transition-all hover:scale-105 hover:-translate-y-1"
                   >
                     <ChefHat className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
-                    {content[language].ownerSignUp}
+                    {"Register as Owner"}
                   </Button>
                 </>
-              ) : (
-                <Button
-                  onClick={() => router.push('/dashboard')}
-                  size="lg"
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto sm:min-w-[240px] shadow-lg hover:shadow-xl transition-all"
-                >
-                  {language === 'en' ? 'Go to Dashboard' : 'डॅशबोर्ड वर जा'}
-                </Button>
-              )}
-            </div>
-
-            <div className="mt-6 sm:mt-8">
-              <p className="text-orange-500 text-sm px-4">
-                {content[language].getStarted}
-              </p>
+              ) : null}
             </div>
           </div>
         </div>
 
         {/* Features Section */}
-        <section id="features" className="py-20 bg-white/90 backdrop-blur-sm">
+        <section id="features" className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4">
-                {language === 'en' ? 'Why Choose OM Sai Bhojnalay?' : 'ओम साई भोजनालयाची निवड का करावी?'}
+              <h2 className="text-3xl sm:text-4xl font-bold gradient-text-orange mb-4">
+                Why Choose OM Sai Bhojnalay?
               </h2>
-              <p className="text-xl text-orange-700 max-w-2xl mx-auto">
-                {language === 'en' 
-                  ? 'Everything you need to manage your mess efficiently'
-                  : 'तुमचा मेस कार्यक्षमतेने चालवण्यासाठी आवश्यक असलेली प्रत्येक गोष्ट'
-                }
+              <p className="text-xl text-masala max-w-2xl mx-auto font-semibold">
+                Experience authentic homely meals with premium quality and service
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="text-center p-6 rounded-lg border border-orange-200 hover:shadow-lg transition-shadow">
-                <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                  <Users className="h-8 w-8 text-orange-600" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {/* Tiffin Service */}
+              <div className="bg-gradient-to-br from-paneer via-white to-orange-50 p-6 rounded-xl border-2 border-saffron hover:shadow-2xl transition-all hover:-translate-y-2 hover:scale-105">
+                <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mb-4 shadow-lg transform transition-transform hover:rotate-6">
+                  <Truck className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-orange-900 mb-3">
-                  {language === 'en' ? 'Member Management' : 'सदस्य व्यवस्थापन'}
+                <h3 className="text-xl font-bold text-chai mb-3 text-center">
+                  Tiffin Service Available
                 </h3>
-                <p className="text-orange-700">
-                  {language === 'en' 
-                    ? 'Easy registration, subscription tracking, and member communication'
-                    : 'सोपी नोंदणी, सदस्यत्व ट्रॅकिंग आणि सदस्य संवाद'
+                <p className="text-masala text-center font-medium">
+                  Special tiffin service for college students - fresh, hygienic, and delivered on time!
+                </p>
+              </div>
+
+              {/* Rating */}
+              <div className="bg-gradient-to-br from-amber-50 via-white to-turmeric/20 p-6 rounded-xl border-2 border-turmeric hover:shadow-2xl transition-all hover:-translate-y-2 hover:scale-105">
+                <div className="mx-auto w-16 h-16 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-full flex items-center justify-center mb-4 shadow-lg transform transition-transform hover:rotate-6">
+                  <Award className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-orange-900 mb-3 text-center">
+                  Rated 4.5/5 Stars
+                </h3>
+                <p className="text-orange-700 text-center">
+                  Consistently rated highly by our satisfied customers for quality and taste
+                </p>
+              </div>
+
+              {/* Wide Varieties */}
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 p-6 rounded-xl border-2 border-orange-200 hover:shadow-xl transition-all hover:scale-105">
+                <div className="mx-auto w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mb-4 shadow-lg transform transition-transform hover:rotate-6">
+                  <UtensilsCrossed className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-orange-900 mb-3 text-center">
+                  Wide Varieties of Food
+                </h3>
+                <p className="text-orange-700 text-center">
+                  No item repetition in a week! Enjoy different delicious meals every day
+                </p>
+              </div>
+
+              {/* Sunday Feast */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-orange-200 hover:shadow-xl transition-all hover:scale-105">
+                <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mb-4 shadow-lg transform transition-transform hover:rotate-6">
+                  <PartyPopper className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-orange-900 mb-3 text-center">
+                  Sunday Special Feast
+                </h3>
+                <p className="text-orange-700 text-center">
+                  {true 
+                    ? 'Every Sunday enjoy special feast meals with exclusive dishes and desserts!'
+                    : 'प्रत्येक रविवारी विशेष पदार्थ आणि मिष्टान्नांसह विशेष मेजवानीचा आनंद घ्या!'
                   }
                 </p>
               </div>
 
-              <div className="text-center p-6 rounded-lg border border-orange-200 hover:shadow-lg transition-shadow">
-                <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                  <ChefHat className="h-8 w-8 text-orange-600" />
+              {/* Affordable Plans */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl border-2 border-orange-200 hover:shadow-xl transition-all hover:scale-105">
+                <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+                  <DollarSign className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-orange-900 mb-3">
-                  {language === 'en' ? 'Digital Payments' : 'डिजिटल पेमेंट'}
+                <h3 className="text-xl font-bold text-orange-900 mb-3 text-center">
+                  Affordable Monthly Plans
                 </h3>
-                <p className="text-orange-700">
-                  {language === 'en' 
-                    ? 'Secure online payments with automatic tracking and receipts'
-                    : 'स्वयंचलित ट्रॅकिंग आणि पावत्यांसह सुरक्षित ऑनलाइन पेमेंट'
+                <p className="text-orange-700 text-center">
+                  {true 
+                    ? 'Budget-friendly subscription plans designed especially for students and working professionals'
+                    : 'विद्यार्थी आणि कामकाजी व्यावसायिकांसाठी विशेषतः डिझाइन केलेल्या बजेट-फ्रेंडली सबस्क्रिप्शन योजना'
                   }
                 </p>
               </div>
 
-              <div className="text-center p-6 rounded-lg border border-orange-200 hover:shadow-lg transition-shadow">
-                <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                  <LogIn className="h-8 w-8 text-orange-600" />
+              {/* Hygiene & Freshness */}
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-orange-200 hover:shadow-xl transition-all hover:scale-105">
+                <div className="mx-auto w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-4">
+                  <Sparkles className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-orange-900 mb-3">
-                  {language === 'en' ? 'Multi-Language Support' : 'बहुभाषिक समर्थन'}
+                <h3 className="text-xl font-bold text-orange-900 mb-3 text-center">
+                  Hygienic & Fresh Meals
                 </h3>
-                <p className="text-orange-700">
-                  {language === 'en' 
-                    ? 'Available in English and Marathi for better accessibility'
-                    : 'चांगल्या प्रवेशक्षमतेसाठी इंग्रजी आणि मराठीमध्ये उपलब्ध'
+                <p className="text-orange-700 text-center">
+                  {true 
+                    ? 'Freshly cooked daily with the highest standards of hygiene and quality ingredients'
+                    : 'उच्च दर्जाची स्वच्छता आणि दर्जेदार साहित्यासह दररोज ताजे शिजवलेले'
                   }
                 </p>
+              </div>
+            </div>
+
+            {/* Important Note - Sunday Evening */}
+            <div className="mt-12 max-w-3xl mx-auto">
+              <div className="bg-orange-100 border-l-4 border-orange-600 p-6 rounded-lg shadow-md">
+                <div className="flex items-start space-x-3">
+                  <AlertCircle className="h-6 w-6 text-orange-600 flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="text-lg font-bold text-orange-900 mb-2">
+                      Important Notice
+                    </h4>
+                    <p className="text-orange-800">
+                      {true 
+                        ? 'Sunday evening mess remains closed. Please plan accordingly.'
+                        : 'रविवारी संध्याकाळी मेस बंद असतो. कृपया त्यानुसार योजना करा.'
+                      }
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -820,23 +837,60 @@ export default function Home() {
         {/* About Section */}
         <section id="about" className="py-20 bg-gradient-to-br from-orange-50/90 via-amber-50/90 to-yellow-50/90 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
+            <div className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-8">
-                {language === 'en' ? 'About OM Sai Bhojnalay' : 'ओम साई भोजनालयाबद्दल'}
+                About OM Sai Bhojnalay
               </h2>
               <div className="max-w-4xl mx-auto text-lg text-orange-700 leading-relaxed">
                 <p className="mb-6">
-                  {language === 'en' 
-                    ? 'Om Sai Bhojnalay is the official digital dashboard for this mess. The site is used by the mess owner to manage day-to-day operations — member subscriptions, menu planning, staff assignments, and payments. This dashboard reflects live data for this mess only.'
-                    : 'ओम साई भोजनालय हा या मेससाठी अधिकृत डिजिटल डॅशबोर्ड आहे. हा साइट मेस मालकाद्वारे दैनंदिन ऑपरेशन्स — सदस्यता, मेनू नियोजन, कर्मचारी नेमणूक आणि पेमेंट्स व्यवस्थापित करण्यासाठी वापरला जातो. हा डॅशबोर्ड फक्त या मेसचे प्रत्यक्ष डेटा दर्शवितो.'
+                  {true 
+                    ? 'Welcome to OM Sai Bhojnalay, the premier mess service in Chhatrapati Sambhajinagar. We take pride in serving authentic, homely meals prepared with love, care, and the highest standards of hygiene. Our commitment to quality and tradition has made us the No.1 choice for students and working professionals in the area.'
+                    : 'छत्रपती संभाजीनगरमधील प्रीमियर मेस सेवा, ओम साई भोजनालयात आपले स्वागत आहे. प्रेम, काळजी आणि स्वच्छतेच्या सर्वोच्च मानकांसह तयार केलेले अस्सल, घरगुती जेवण सर्व्ह करण्यात आम्हाला अभिमान आहे. गुणवत्ता आणि परंपरेच्या आमच्या वचनबद्धतेमुळे आम्ही या क्षेत्रातील विद्यार्थी आणि कामकाजी व्यावसायिकांसाठी नंबर १ निवड बनलो आहोत.'
                   }
                 </p>
-                <p>
-                  {language === 'en' 
-                    ? 'All features are configured and maintained by the mess owner. Members can view menus and manage subscriptions as provided by the owner. For support or inquiries about this mess, please use the contact details in the footer.'
-                    : 'सर्व वैशिष्ट्ये मेस मालकाद्वारे कॉन्फिगर आणि व्यवस्थापित केली जातात. सदस्य मालकाद्वारे उपलब्ध केलेल्या मेनू पाहू शकतात आणि सदस्यत्व व्यवस्थापित करू शकतात. या मेसबद्दल मदत किंवा चौकशीसाठी कृपया फूटर्समध्ये दिलेले संपर्क तपशील वापरा.'
+                <p className="mb-6">
+                  {true 
+                    ? 'Our state-of-the-art digital platform makes it easy to manage subscriptions, view menus, and make payments seamlessly. We believe in combining traditional cooking methods with modern technology to provide you with the best dining experience.'
+                    : 'आमचे अत्याधुनिक डिजिटल प्लॅटफॉर्म सबस्क्रिप्शन व्यवस्थापित करणे, मेनू पाहणे आणि पेमेंट्स निर्बाधपणे करणे सोपे करते. पारंपारिक स्वयंपाक पद्धती आधुनिक तंत्रज्ञानासह एकत्र करून तुम्हाला सर्वोत्तम डायनिंग अनुभव प्रदान करण्यावर आमचा विश्वास आहे.'
                   }
                 </p>
+              </div>
+            </div>
+
+            {/* Address Card */}
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-orange-200">
+                <div className="flex items-center justify-center mb-6">
+                  <MapPin className="h-8 w-8 text-orange-600 mr-3" />
+                  <h3 className="text-2xl font-bold text-orange-900">
+                    Visit Us
+                  </h3>
+                </div>
+                
+                <div className="text-center space-y-2">
+                  <h4 className="text-xl font-bold text-orange-900">
+                    HOTEL OM SAI BHOJNALAYA
+                  </h4>
+                  <div className="text-orange-700 leading-relaxed">
+                    <p>Plot No 9-A, Gut No 3, Martand Nagar</p>
+                    <p>Satara Parisar, Chhatrapati Sambhajinagar</p>
+                    <p>Ward No 114 (Deolai Satara)</p>
+                    <p>Aurangabad Municipal Corporation Zone 8</p>
+                    <p>Aurangabad, Maharashtra - 431001</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-orange-200 text-center">
+                  <a 
+                    href="https://www.google.com/maps/search/?api=1&query=Plot+No+9-A+Gut+No+3+Martand+Nagar+Satara+Parisar+Chhatrapati+Sambhajinagar" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+                  >
+                    <MapPin className="h-5 w-5" />
+                    <span>Get Directions</span>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -847,10 +901,10 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4">
-                {language === 'en' ? 'Find Our Mess' : 'आमचा मेस शोधा'}
+                Find Our Mess
               </h2>
               <p className="text-xl text-orange-700 max-w-2xl mx-auto mb-8">
-                {language === 'en' 
+                {true 
                   ? 'Conveniently located for easy access. Visit us today!'
                   : 'सोप्या प्रवेशासाठी सोयीस्कर ठिकाणी स्थित. आज आम्हाला भेट द्या!'
                 }
@@ -858,7 +912,7 @@ export default function Home() {
               <div className="flex items-center justify-center space-x-2 text-orange-600 mb-8">
                 <MapPin className="h-5 w-5" />
                 <span className="text-lg font-medium">
-                  {language === 'en' ? 'Live Location' : 'थेट स्थान'}
+                  Live Location
                 </span>
               </div>
             </div>
@@ -870,7 +924,7 @@ export default function Home() {
             
             <div className="text-center mt-8">
               <p className="text-orange-600 text-sm">
-                {language === 'en' 
+                {true 
                   ? 'Location shown is based on your current position. Contact us for exact mess address.'
                   : 'दर्शविलेले स्थान तुमच्या सध्याच्या स्थितीवर आधारित आहे. अचूक मेस पत्त्यासाठी आमच्याशी संपर्क साधा.'
                 }
@@ -884,29 +938,55 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-8">
-                {language === 'en' ? 'Get In Touch' : 'संपर्कात रहा'}
+                Get In Touch
               </h2>
               <div className="max-w-2xl mx-auto">
                 <p className="text-lg text-orange-700 mb-8">
-                  {language === 'en' 
-                    ? 'Ready to transform your mess management? Get started today or contact us for more information.'
-                    : 'तुमच्या मेस व्यवस्थापनात बदल करण्यास तयार आहात? आज सुरुवात करा किंवा अधिक माहितीसाठी आमच्याशी संपर्क साधा.'
+                  {true 
+                    ? 'Ready to experience authentic homely meals? Join us today or contact us for more information about subscriptions, tiffin service, and special packages.'
+                    : 'अस्सल घरगुती जेवणाचा अनुभव घेण्यास तयार आहात? आज आमच्यात सामील व्हा किंवा सबस्क्रिप्शन, टिफिन सेवा आणि विशेष पॅकेजबद्दल अधिक माहितीसाठी आमच्याशी संपर्क साधा.'
                   }
                 </p>
+                
+                <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-8 mb-8 border-2 border-orange-200 shadow-lg">
+                  <h3 className="text-xl font-bold text-orange-900 mb-4">
+                    Contact Mess Owner
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center space-x-2 text-orange-800">
+                      <Mail className="h-6 w-6 text-orange-600" />
+                      <a 
+                        href="mailto:usha011993@gmail.com" 
+                        className="text-lg font-semibold hover:text-orange-600 underline transition-colors"
+                      >
+                        usha011993@gmail.com
+                      </a>
+                    </div>
+                    <p className="text-orange-600 text-sm">
+                      {true 
+                        ? 'For inquiries about meals, subscriptions, tiffin service, or any mess-related questions'
+                        : 'जेवण, सबस्क्रिप्शन, टिफिन सेवा किंवा कोणत्याही मेस संबंधित प्रश्नांसाठी'
+                      }
+                    </p>
+                  </div>
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button
                     onClick={() => router.push('/signup')}
                     size="lg"
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all"
                   >
-                    {language === 'en' ? 'Get Started Now' : 'आता सुरुवात करा'}
+                    <Users className="h-5 w-5 mr-2" />
+                    Join Now
                   </Button>
                   <Button
-                    variant="outline"
+                    onClick={() => router.push('/dashboard')}
                     size="lg"
-                    className="border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white"
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all"
                   >
-                    {language === 'en' ? 'Contact Support' : 'सपोर्टशी संपर्क साधा'}
+                    <ChefHat className="h-5 w-5 mr-2" />
+                    Go to Dashboard
                   </Button>
                 </div>
               </div>
@@ -916,54 +996,65 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-orange-900 text-orange-100 py-12">
+      <footer className="bg-gradient-to-br from-orange-900 via-orange-800 to-red-900 text-orange-100 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div 
-              className="flex items-center justify-center space-x-3 mb-4 cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center justify-center space-x-3 mb-6 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => router.push('/')}
             >
-              <div className="p-2 bg-orange-600 rounded-lg">
-                <ChefHat className="h-6 w-6 text-white" />
+              <div className="relative h-16 w-16">
+                <Image 
+                  src="/images/BrandLogo.png" 
+                  alt="Om Sai Bhojnalay Logo" 
+                  fill
+                  className="object-contain"
+                />
               </div>
-              <span className="text-xl font-bold text-white">ओम साई भोजनालय</span>
+              <div>
+                <span className="text-2xl font-bold text-white block">ओम साई भोजनालय</span>
+                <span className="text-sm text-orange-200">The No.1 Mess in Chhatrapati Sambhajinagar</span>
+              </div>
             </div>
-            <p className="text-orange-200 mb-4">
-              {language === 'en' 
-                ? 'Your trusted partner for mess management solutions'
-                : 'मेस व्यवस्थापन समाधानांसाठी तुमचा विश्वसनीय भागीदार'
+            
+            <p className="text-orange-200 mb-6 text-lg">
+              {true 
+                ? 'Serving delicious, homely meals with love, hygiene, and tradition'
+                : 'प्रेम, स्वच्छता आणि परंपरेसह चवदार, घरगुती जेवण सर्व्ह करत आहोत'
               }
             </p>
 
-            {/* Mess Owner Contact */}
-            <div className="mb-6 pb-6 border-b border-orange-700">
-              <div className="text-orange-100 font-semibold text-base mb-2">
-                {language === 'en' ? 'Contact Mess Owner' : 'मेस मालकाशी संपर्क साधा'}
+            {/* Address Section */}
+            <div className="mb-8 pb-8 border-b border-orange-700">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <MapPin className="h-5 w-5 text-orange-300" />
+                <h3 className="text-lg font-bold text-orange-100">
+                  Visit Us
+                </h3>
               </div>
-              <a 
-                href="mailto:usha011993@gmail.com" 
-                className="text-orange-200 hover:text-white underline text-lg font-medium transition-colors"
-              >
-                usha011993@gmail.com
-              </a>
-              <div className="text-orange-300 text-sm mt-1">
-                {language === 'en' 
-                  ? 'For inquiries about meals, subscriptions, or any mess-related questions'
-                  : 'जेवण, सबस्क्रिप्शन किंवा कोणत्याही मेस संबंधित प्रश्नांसाठी'
-                }
+              <div className="text-orange-200 space-y-1">
+                <p className="font-semibold">HOTEL OM SAI BHOJNALAYA</p>
+                <p className="text-sm">Plot No 9-A, Gut No 3, Martand Nagar, Satara Parisar</p>
+                <p className="text-sm">Chhatrapati Sambhajinagar, Ward No 114 (Deolai Satara)</p>
+                <p className="text-sm">Aurangabad Municipal Corporation Zone 8</p>
+                <p className="text-sm">Aurangabad, Maharashtra - 431001</p>
               </div>
             </div>
 
             {/* Developer copyright and contact info */}
-            <div className="text-orange-300 text-sm space-y-1">
-              <div>© 2025 ओम साई भोजनालय. All rights reserved.</div>
-              <div>Developed by MIT students: Pramod Dwarkunde &amp; Mohan Birajdar</div>
-              <div className="text-xs">
-                Pramod: <a href="mailto:pramodkd023@gmail.com" className="underline hover:text-white">pramodkd023@gmail.com</a> • Mohan: <a href="mailto:mohanbirajdar@gmail.com" className="underline hover:text-white">mohanbirajdar@gmail.com</a>
+            <div className="text-orange-300 text-sm space-y-2">
+              <div className="text-orange-200 font-medium">© 2025 ओम साई भोजनालय. All rights reserved.</div>
+              <div>Developed with ❤️ by MIT students: Pramod Dwarkunde &amp; Mohan Birajdar</div>
+              <div className="text-xs flex flex-wrap justify-center gap-2">
+                <span>Pramod: <a href="mailto:pramodkd023@gmail.com" className="underline hover:text-white">pramodkd023@gmail.com</a></span>
+                <span>•</span>
+                <span>Mohan: <a href="mailto:mohanbirajdar@gmail.com" className="underline hover:text-white">mohanbirajdar@gmail.com</a></span>
               </div>
 
-              <div className="pt-2 text-sm text-orange-200">
-                Services: Software development, Product design, Custom software solutions, Mobile &amp; Web apps, Payment integration, DevOps &amp; Consultancy
+              <div className="pt-4 text-sm text-orange-200 border-t border-orange-700 mt-4">
+                <p className="font-medium mb-1">Our Services</p>
+                <p className="text-xs">Software Development • Product Design • Custom Software Solutions</p>
+                <p className="text-xs">Mobile &amp; Web Apps • Payment Integration • DevOps &amp; Consultancy</p>
               </div>
             </div>
           </div>

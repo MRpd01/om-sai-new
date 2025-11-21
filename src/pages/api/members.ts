@@ -6,6 +6,7 @@ type PaymentStatus = 'success' | 'due' | 'pending' | 'failed';
 
 type MemberResponse = {
   id: string;
+  userId: string;
   name: string;
   email: string | null;
   phone: string | null;
@@ -50,11 +51,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(401).json({ success: false, error: 'Missing access token' });
   }
 
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+  // Helper function to retry auth operations
+  async function authWithRetry<T>(operation: () => Promise<T>, maxRetries = 2): Promise<T> {
+    let lastError: any = null;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Only retry on network/timeout errors
+        const isRetryable = error?.status === 0 || 
+                           error?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+                           error?.message?.includes('fetch failed') ||
+                           error?.message?.includes('timeout');
+        
+        if (isRetryable && attempt < maxRetries - 1) {
+          const waitTime = 1000 * (attempt + 1); // 1s, 2s
+          console.warn(`⚠️ Auth retry ${attempt + 1}/${maxRetries} after ${waitTime}ms`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        
+        throw error;
+      }
+    }
+    
+    throw lastError;
+  }
+
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, { 
+    auth: { 
+      persistSession: false,
+      autoRefreshToken: false
+    },
+    global: {
+      headers: {
+        'Connection': 'keep-alive'
+      }
+    }
+  });
 
   try {
-    const { data: userData, error: userError } = await adminClient.auth.getUser(token as string);
+    const { data: userData, error: userError } = await authWithRetry(() => 
+      adminClient.auth.getUser(token as string)
+    );
+    
     if (userError || !userData?.user) {
+      console.error('Auth error:', userError);
       return res.status(401).json({ success: false, error: 'Invalid or expired token' });
     }
 
@@ -97,7 +142,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         users!mess_members_user_id_fkey (
           id,
           name,
-          email,
           mobile_number,
           parent_mobile,
           photo_url
@@ -113,6 +157,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const userIds = (memberRows || [])
       .map((member) => member.user_id)
       .filter((id): id is string => Boolean(id));
+
+    // Fetch auth emails for all users
+    const emailsByUserId: Record<string, string> = {};
+    
+    if (userIds.length > 0) {
+      try {
+        // Get emails from auth.users for all member users
+        const { data: authUsers } = await adminClient.auth.admin.listUsers();
+        if (authUsers?.users) {
+          for (const authUser of authUsers.users) {
+            if (userIds.includes(authUser.id)) {
+              emailsByUserId[authUser.id] = authUser.email || '';
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch auth emails:', error);
+      }
+    }
 
     const paymentsByUser: Record<string, { created_at: string; amount: number; status: PaymentStatus }> = {};
 
@@ -142,25 +205,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     const members: MemberResponse[] = (memberRows || []).map((member) => {
       const subscription_type = member.subscription_type as SubscriptionType;
-      const paymentStatus = member.payment_status as PaymentStatus;
       const userInfo = (member as any).users;
 
       const userId = member.user_id;
       const paymentInfo = userId ? paymentsByUser[userId] : undefined;
-      const derivedStatus: 'active' | 'inactive' | 'pending' = !member.is_active
-        ? 'inactive'
-        : paymentStatus === 'due' || paymentStatus === 'pending'
-          ? 'pending'
-          : 'active';
-
+      
       const advancePayment = Number(member.advance_payment) || 0;
       const totalAmountDue = Number(member.total_amount_due) || 0;
       const remainingAmount = totalAmountDue - advancePayment;
 
+      // Determine status and payment status based on payment and expiry date:
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+      
+      const expiryDate = member.expiry_date ? new Date(member.expiry_date) : null;
+      const isExpired = expiryDate ? expiryDate < today : false;
+
+      // Determine payment status based on payment completion and expiry
+      let calculatedPaymentStatus: PaymentStatus;
+      
+      if (remainingAmount <= 0 && !isExpired) {
+        // Full payment made and not expired
+        calculatedPaymentStatus = 'success';
+      } else if (advancePayment > 0 && remainingAmount > 0 && !isExpired) {
+        // Partial payment (advance) and not expired
+        calculatedPaymentStatus = 'pending';
+      } else if (isExpired || (!member.is_active && remainingAmount > 0)) {
+        // Subscription expired OR member inactive with unpaid amount
+        calculatedPaymentStatus = 'due';
+      } else if (!isExpired && remainingAmount > 0 && member.is_active) {
+        // Not expired but has remaining amount - still pending/due
+        calculatedPaymentStatus = advancePayment > 0 ? 'pending' : 'due';
+      } else {
+        calculatedPaymentStatus = 'due';
+      }
+
+      // Determine member status
+      let derivedStatus: 'active' | 'inactive' | 'pending';
+      
+      if (!member.is_active || isExpired) {
+        // Member is not active OR subscription has expired
+        derivedStatus = 'inactive';
+      } else if (calculatedPaymentStatus === 'success') {
+        // Full payment made and not expired
+        derivedStatus = 'active';
+      } else if (calculatedPaymentStatus === 'pending') {
+        // Partial payment (advance) and not expired
+        derivedStatus = 'pending';
+      } else {
+        // No payment made and not expired
+        derivedStatus = 'inactive';
+      }
+
       return {
         id: member.id,
+        userId: member.user_id,
         name: userInfo?.name || 'Member',
-        email: userInfo?.email ?? null,
+        email: emailsByUserId[member.user_id] || null,
         phone: userInfo?.mobile_number ?? null,
         parent_mobile: userInfo?.parent_mobile ?? null,
         photo_url: userInfo?.photo_url ?? null,
@@ -168,7 +269,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         joinDate: member.joining_date ?? new Date().toISOString().split('T')[0],
         expiryDate: member.expiry_date ?? null,
         status: derivedStatus,
-        paymentStatus,
+        paymentStatus: calculatedPaymentStatus, // Use calculated status instead of database value
         lastPaymentDate: paymentInfo?.created_at ?? null,
         lastPaymentAmount: paymentInfo?.amount ?? null,
         advancePayment: advancePayment,

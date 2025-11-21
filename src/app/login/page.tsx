@@ -10,45 +10,13 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function LoginContent() {
-  const searchParams = useSearchParams();
-  const urlRole = searchParams?.get('role');
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [currentRole, setCurrentRole] = useState<'user' | 'admin'>(urlRole as 'user' | 'admin' || 'user');
   const { signIn } = useAuth();
   const router = useRouter();
-
-  // Update role when URL parameter changes
-  useEffect(() => {
-    if (urlRole) {
-      setCurrentRole(urlRole as 'user' | 'admin');
-    }
-  }, [urlRole]);
-
-  const roleConfig = {
-    user: {
-      title: 'Member Sign In',
-      description: 'Sign in to access your mess membership',
-      icon: Users,
-      color: 'orange',
-      demoEmail: 'user@demo.com',
-      demoLabel: 'Demo Member'
-    },
-    admin: {
-      title: 'Mess Owner Sign In',
-      description: 'Sign in to manage your mess business',
-      icon: ChefHat,
-      color: 'orange',
-      demoEmail: 'admin@demo.com',
-      demoLabel: 'Demo Owner'
-    }
-  };
-
-  const config = roleConfig[currentRole];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,25 +74,14 @@ function LoginContent() {
         <Card className="border-orange-200 shadow-xl">
           <CardHeader className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className={`p-3 bg-${config.color}-100 rounded-full`}>
-                <config.icon className={`h-8 w-8 text-${config.color}-600`} />
+              <div className="p-3 bg-orange-100 rounded-full">
+                <ChefHat className="h-8 w-8 text-orange-600" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold text-orange-900">{config.title}</CardTitle>
+            <CardTitle className="text-2xl font-bold text-orange-900">Sign In</CardTitle>
             <CardDescription className="text-orange-700">
-              {config.description}
+              Welcome to OM Sai Bhojnalay - Enter your credentials to continue
             </CardDescription>
-            
-            {/* Role Switch */}
-            <div className="flex items-center justify-center space-x-2 pt-2">
-              <span className="text-sm text-orange-600">Not what you're looking for?</span>
-              <Link 
-                href={`/login?role=${currentRole === 'user' ? 'admin' : 'user'}`}
-                className="text-sm font-medium text-orange-700 hover:text-orange-900 underline"
-              >
-                {currentRole === 'user' ? 'Mess Owner Sign In' : 'Member Sign In'}
-              </Link>
-            </div>
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -172,6 +129,7 @@ function LoginContent() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-3 text-orange-500 hover:text-orange-700"
+                    suppressHydrationWarning
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -192,6 +150,7 @@ function LoginContent() {
                 type="submit" 
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white" 
                 disabled={loading}
+                suppressHydrationWarning
               >
                 {loading ? (
                   <div className="flex items-center justify-center">
@@ -217,7 +176,7 @@ function LoginContent() {
               <div className="text-sm text-orange-700">
                 Don't have an account?{' '}
                 <Link 
-                  href={`/signup?role=${currentRole}`} 
+                  href="/signup" 
                   className="font-medium text-orange-600 hover:text-orange-700"
                 >
                   Sign up
@@ -226,37 +185,6 @@ function LoginContent() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Role-based Login Options */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-orange-600 mb-3">Quick Demo Access</p>
-          <div className="flex gap-2 justify-center">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-orange-600 border-orange-200 hover:bg-orange-50"
-              onClick={() => {
-                setEmail(config.demoEmail);
-                setPassword('demo123');
-              }}
-            >
-              {config.demoLabel}
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-orange-600 border-orange-200 hover:bg-orange-50"
-              onClick={() => {
-                const otherRole = currentRole === 'user' ? 'admin' : 'user';
-                const otherConfig = roleConfig[otherRole];
-                setEmail(otherConfig.demoEmail);
-                setPassword('demo123');
-              }}
-            >
-              {currentRole === 'user' ? 'Demo Owner' : 'Demo Member'}
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
   );

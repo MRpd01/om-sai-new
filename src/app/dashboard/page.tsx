@@ -5,11 +5,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ChefHat, Users, CreditCard, Calendar, Bell, Settings, LogOut, User, Globe, ChevronDown, Camera, Upload, X, UserPlus, Menu } from 'lucide-react';
+import { ChefHat, Users, CreditCard, Calendar, Bell, Settings, LogOut, User, Globe, ChevronDown, Camera, Upload, X, UserPlus, Menu, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { createPayment, createMembership } from '@/lib/supabase';
+import Image from 'next/image';
 
 export default function DashboardPage() {
   const { user, signOut, loading } = useAuth();
@@ -23,6 +24,40 @@ export default function DashboardPage() {
   const [loadingSubscription, setLoadingSubscription] = useState(true);
   const [showSubscribeForm, setShowSubscribeForm] = useState(false);
   const [subscriptionMode, setSubscriptionMode] = useState<'payment' | 'request'>('payment'); // payment = pay ₹500+, request = ask admin
+  
+  // Dashboard statistics state
+  const [dashboardStats, setDashboardStats] = useState(() => {
+    // Try to load cached stats from localStorage on mount
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('dashboardStatsCache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          // Check if cache is less than 60 seconds old
+          if (parsed.timestamp && (Date.now() - parsed.timestamp) < 60000) {
+            console.log('📦 Restored stats from localStorage');
+            return parsed.stats;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load cached stats:', e);
+      }
+    }
+    return {
+      totalMembers: 0,
+      activeMembers: 0,
+      inactiveMembers: 0,
+      partiallyActiveMembers: 0,
+      totalPaymentsThisMonth: 0,
+      totalPaymentsAllTime: 0,
+      pendingRequests: 0,
+      activeAdmins: 0,
+      dueSoonMembers: 0
+    };
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [statsCache, setStatsCache] = useState<any>(null);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   
   // First-time subscription form state (for payment mode)
   const [subscriptionForm, setSubscriptionForm] = useState({
@@ -68,17 +103,29 @@ export default function DashboardPage() {
   const [memberCameraStream, setMemberCameraStream] = useState<MediaStream | null>(null);
   const [addingMember, setAddingMember] = useState(false);
   
-  // Stable role state to prevent flickering
-  const [stableRole, setStableRole] = useState<'admin' | 'user' | null>(null);
-  const userRole = stableRole || user?.user_metadata?.role || 'user';
+  // Password protection for Manage Members
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [enteredPassword, setEnteredPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const MANAGE_MEMBERS_PASSWORD = 'usha0693';
   
-  // Set stable role once user is loaded
-  useEffect(() => {
-    if (user && !loading) {
-      const role = (user.user_metadata?.role || 'user') as 'admin' | 'user';
-      setStableRole(role);
-    }
-  }, [user, loading]);
+  // Memoize role and permissions to prevent re-renders
+  const userRole = useMemo(() => {
+    const role = user?.user_metadata?.role === 'admin' ? 'admin' : 'user';
+    console.log('🎯 Dashboard role determined:', role, 'User ID:', user?.id);
+    return role;
+  }, [user?.user_metadata?.role, user?.id]);
+
+  const isOwner = useMemo(() => {
+    const subRole = user?.user_metadata?.sub_role || 'owner';
+    const isOwnerRole = userRole === 'admin' && subRole === 'owner';
+    console.log('🔑 Permission check - Is Owner:', isOwnerRole, 'Sub-role:', subRole);
+    return isOwnerRole;
+  }, [user?.user_metadata?.sub_role, userRole]);
+
+  const isSubAdmin = useMemo(() => {
+    return userRole === 'admin' && user?.user_metadata?.sub_role === 'sub_admin';
+  }, [user?.user_metadata?.sub_role, userRole]);
   
   const planPrices: Record<string, number> = { 
     double_time: 2600, 
@@ -197,6 +244,37 @@ export default function DashboardPage() {
     closeMemberCamera();
   };
 
+  // Password verification for Manage Members access
+  const handleManageMembersClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowPasswordDialog(true);
+    setEnteredPassword('');
+    setPasswordError('');
+  };
+
+  const handlePasswordSubmit = () => {
+    if (enteredPassword === MANAGE_MEMBERS_PASSWORD) {
+      setShowPasswordDialog(false);
+      setEnteredPassword('');
+      setPasswordError('');
+      // Use router.push with manage parameter for edit access
+      router.push('/members?manage=true');
+    } else {
+      setPasswordError('❌ Incorrect password. Please try again.');
+      setEnteredPassword('');
+      // Auto-hide error after 4 seconds
+      setTimeout(() => {
+        setPasswordError('');
+      }, 4000);
+    }
+  };
+
+  const handlePasswordKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handlePasswordSubmit();
+    }
+  };
+
   const handleAddMember = async () => {
     if (!newMemberData.full_name || !newMemberData.email) {
       alert('Please fill all required fields (Name and Email)');
@@ -285,6 +363,135 @@ export default function DashboardPage() {
     fetchMemberSubscription();
   }, [user, userRole]);
 
+  // Fetch dashboard statistics for admin users
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      // Wait until auth finishes to decide whether to fetch admin stats
+      if (loading) {
+        setLoadingStats(true);
+        return;
+      }
+
+      if (userRole !== 'admin' || !user?.id) {
+        setLoadingStats(false);
+        return;
+      }
+
+      // Use cache if data was fetched within last 30 seconds
+      const now = Date.now();
+      if (statsCache && (now - lastFetchTime) < 30000) {
+        console.log('📦 Using cached dashboard stats');
+        setDashboardStats(statsCache);
+        setLoadingStats(false);
+        return;
+      }
+
+      try {
+        console.log('🔄 Fetching dashboard stats...');
+        
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const today = new Date().toISOString();
+        const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const currentMonth = new Date().toISOString().slice(0, 7);
+
+        // Use lightweight COUNT queries instead of fetching all member rows
+        const [
+          totalRes,
+          activeRes,
+          partialRes,
+          dueSoonRes,
+          paymentsMonthResult,
+          paymentsAllResult,
+          requestsResult,
+          adminsResult
+        ] = await Promise.all([
+          // Total members count
+          supabase.from('mess_members').select('id', { count: 'exact', head: true }),
+
+          // Active members: is_active = true, payment_status = 'success', expiry_date >= today
+          supabase.from('mess_members').select('id', { count: 'exact', head: true }).eq('is_active', true).eq('payment_status', 'success').gte('expiry_date', today),
+
+          // Partially active: is_active = true, payment_status in ('due','pending')
+          supabase.from('mess_members').select('id', { count: 'exact', head: true }).eq('is_active', true).in('payment_status', ['due', 'pending']),
+
+          // Due soon: expiry_date within next 7 days and not expired
+          supabase.from('mess_members').select('id', { count: 'exact', head: true }).gte('expiry_date', today).lte('expiry_date', sevenDaysFromNow),
+
+          // Monthly payments sum
+          supabase.from('payments').select('amount').gte('created_at', `${currentMonth}-01`).eq('status', 'success'),
+
+          // All time payments sum
+          supabase.from('payments').select('amount').eq('status', 'success'),
+
+          // Count pending requests
+          supabase.from('subscription_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+
+          // Count active admins
+          supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'admin').eq('is_active', true)
+        ]);
+
+        const totalMembers = totalRes.count || 0;
+        const activeMembers = activeRes.count || 0;
+        const partiallyActiveMembers = partialRes.count || 0;
+        // inactive = total - active - partiallyActive (approximation)
+        const inactiveMembers = Math.max(0, totalMembers - activeMembers - partiallyActiveMembers);
+        const dueSoonMembers = dueSoonRes.count || 0;
+
+        const totalPaymentsThisMonth = (paymentsMonthResult.data || []).reduce(
+          (sum, p) => sum + (parseFloat(p.amount?.toString() || '0') || 0), 0
+        );
+
+        const totalPaymentsAllTime = (paymentsAllResult.data || []).reduce(
+          (sum, p) => sum + (parseFloat(p.amount?.toString() || '0') || 0), 0
+        );
+
+        const stats = {
+          totalMembers,
+          activeMembers,
+          inactiveMembers,
+          partiallyActiveMembers,
+          totalPaymentsThisMonth,
+          totalPaymentsAllTime,
+          pendingRequests: requestsResult.count || 0,
+          activeAdmins: adminsResult.count || 0,
+          dueSoonMembers
+        };
+
+        setDashboardStats(stats);
+        setStatsCache(stats);
+        setLastFetchTime(now);
+
+        // Persist to localStorage for instant load on next visit
+        try {
+          localStorage.setItem('dashboardStatsCache', JSON.stringify({
+            stats,
+            timestamp: now
+          }));
+        } catch (e) {
+          console.warn('Failed to cache stats to localStorage:', e);
+        }
+
+        console.log('✅ Dashboard stats loaded:', stats);
+
+      } catch (err) {
+        console.error('❌ Error fetching dashboard stats:', err);
+        // Keep previous data if available
+        if (statsCache) {
+          setDashboardStats(statsCache);
+        }
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, [user, userRole, statsCache, lastFetchTime, loading]);
+
   // Update payment amount when plan changes in subscription form
   useEffect(() => {
     if (showSubscribeForm) {
@@ -344,11 +551,17 @@ export default function DashboardPage() {
             paymentAmount: subscriptionForm.paymentAmount,
             totalAmountDue: planPrice
           }),
+        }).catch(err => {
+          console.error('Network error:', err);
+          throw new Error('Network connection failed. Please check your internet.');
         });
 
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to create subscription');
+        }
+        
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to create subscription');
-
         alert('✅ Subscription created successfully!');
         window.location.reload();
         
@@ -375,6 +588,9 @@ export default function DashboardPage() {
             joiningDate: requestForm.joiningDate,
             message: requestForm.requestMessage || null
           }),
+        }).catch(err => {
+          console.error('Network error:', err);
+          throw new Error('Network connection failed. Please check your internet.');
         });
 
         // Check if response has content before parsing JSON
@@ -411,28 +627,59 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
-          <p className="mt-4 text-orange-700">Loading...</p>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+        {/* Skeleton Header */}
+        <div className="bg-white shadow-md border-b border-orange-100 p-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="skeleton h-8 w-48"></div>
+            <div className="flex space-x-3">
+              <div className="skeleton h-10 w-32"></div>
+              <div className="skeleton h-10 w-10 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Skeleton Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="skeleton h-10 w-64 mb-8"></div>
+          
+          {/* Skeleton Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white rounded-lg border border-orange-100 p-6">
+                <div className="skeleton h-4 w-24 mb-4"></div>
+                <div className="skeleton h-8 w-16 mb-2"></div>
+                <div className="skeleton h-3 w-32"></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Skeleton Large Card */}
+          <div className="bg-white rounded-lg border border-orange-100 p-6">
+            <div className="skeleton h-6 w-48 mb-4"></div>
+            <div className="space-y-3">
+              <div className="skeleton h-4 w-full"></div>
+              <div className="skeleton h-4 w-3/4"></div>
+              <div className="skeleton h-4 w-5/6"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!user || !stableRole) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
-          <p className="mt-4 text-orange-700">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+  if (!user) {
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+      {/* Top loading progress bar (shows while dashboard stats are loading) */}
+      {loadingStats && (
+        <div className="fixed top-0 left-0 right-0 h-1 z-50 overflow-hidden">
+          <div className="top-progress h-full"></div>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-orange-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -442,8 +689,14 @@ export default function DashboardPage() {
               className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => router.push('/')}
             >
-              <div className="p-2 bg-orange-600 rounded-lg">
-                <ChefHat className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <div className="relative h-10 w-10 sm:h-12 sm:w-12">
+                <Image 
+                  src="/images/BrandLogo.png" 
+                  alt="Om Sai Bhojnalay Logo" 
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-orange-900">ओम साई भोजनालय</h1>
@@ -628,26 +881,113 @@ export default function DashboardPage() {
         {/* Role-based Dashboard Content */}
         {userRole === 'admin' ? (
           /* Admin Dashboard */
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-            <Link href="/members">
-              <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
-                      <Users className="h-6 w-6 text-orange-600" />
+          <div className="space-y-6">
+            {/* Member Statistics Cards - Responsive Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {/* 1. All Members - Highest Priority (Most Used) */}
+              <Link href="/members" className="w-full">
+                <Card className="h-full border-blue-200 cursor-pointer hover:shadow-lg hover:border-blue-400 transition-all duration-300 hover:scale-105">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                        <Users className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-3xl font-bold text-blue-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div> : dashboardStats.totalMembers}
+                        </p>
+                        <p className="text-sm text-blue-700 font-medium">All Members</p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-orange-900 group-hover:text-orange-700 transition-colors">{t('dashboard.members')}</CardTitle>
-                      <CardDescription>View and manage mess members</CardDescription>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              {/* 2. Active Members - High Priority */}
+              <Link href="/members?status=active" className="w-full">
+                <Card className="h-full border-green-200 cursor-pointer hover:shadow-lg hover:border-green-400 transition-all duration-300 hover:scale-105">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-3 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
+                        <Users className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-3xl font-bold text-green-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div> : dashboardStats.activeMembers}
+                        </p>
+                        <p className="text-sm text-green-700 font-medium">Active Members</p>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">127</div>
-                  <p className="text-sm text-orange-700">Active Members</p>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              {/* 3. Pending Members - Medium Priority */}
+              <Link href="/members?status=pending" className="w-full">
+                <Card className="h-full border-purple-200 cursor-pointer hover:shadow-lg hover:border-purple-400 transition-all duration-300 hover:scale-105">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                        <Calendar className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-3xl font-bold text-purple-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div> : dashboardStats.partiallyActiveMembers}
+                        </p>
+                        <p className="text-sm text-purple-700 font-medium">Pending</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              {/* 4. Inactive Members - Medium Priority */}
+              <Link href="/members?status=inactive" className="w-full">
+                <Card className="h-full border-red-200 cursor-pointer hover:shadow-lg hover:border-red-400 transition-all duration-300 hover:scale-105">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-3 bg-red-100 rounded-lg group-hover:bg-red-200 transition-colors">
+                        <Users className="h-6 w-6 text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-3xl font-bold text-red-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div> : dashboardStats.inactiveMembers}
+                        </p>
+                        <p className="text-sm text-red-700 font-medium">Inactive</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              {/* 5. Manage Members - Lower Priority (Password Protected) */}
+              <div onClick={isOwner ? handleManageMembersClick : undefined} className="w-full">
+                <Card className={`h-full transition-all duration-300 border-orange-200 ${
+                  isOwner 
+                    ? 'group hover:shadow-lg hover:border-orange-400 cursor-pointer' 
+                    : 'opacity-70 cursor-not-allowed'
+                }`}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-3 bg-orange-100 rounded-lg ${isOwner ? 'group-hover:bg-orange-200' : ''} transition-colors`}>
+                        <Lock className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-3xl font-bold text-orange-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div> : dashboardStats.totalMembers}
+                        </p>
+                        <p className="text-sm text-orange-700 font-medium">
+                          Manage {isSubAdmin && '(View Only)'}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Other Admin Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
 
             <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
               <CardHeader>
@@ -662,8 +1002,15 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">₹45,000</div>
+                <div className="text-2xl font-bold text-orange-600">
+                  {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div> : `₹${dashboardStats.totalPaymentsThisMonth.toLocaleString('en-IN')}`}
+                </div>
                 <p className="text-sm text-orange-700">This Month</p>
+                {!loadingStats && dashboardStats.totalPaymentsAllTime > 0 && (
+                  <p className="text-xs text-orange-500 mt-1">
+                    Total: ₹{dashboardStats.totalPaymentsAllTime.toLocaleString('en-IN')}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -681,7 +1028,9 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">2</div>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div> : dashboardStats.activeAdmins}
+                  </div>
                   <p className="text-sm text-orange-700">Active Admins</p>
                 </CardContent>
               </Card>
@@ -701,24 +1050,36 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">🔔</div>
-                  <p className="text-sm text-blue-700">Review pending requests</p>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div> : dashboardStats.pendingRequests > 0 ? `${dashboardStats.pendingRequests} 🔔` : '✓'}
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    {loadingStats ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div> : dashboardStats.pendingRequests > 0 ? `${dashboardStats.pendingRequests} Pending Request${dashboardStats.pendingRequests > 1 ? 's' : ''}` : 'No Pending Requests'}
+                  </p>
                 </CardContent>
               </Card>
             </Link>
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
+            <Card className="group hover:shadow-lg transition-all duration-300 border-yellow-200 hover:border-yellow-400 cursor-pointer">
               <CardHeader>
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Bell className="h-6 w-6 text-orange-600" />
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <Calendar className="h-6 w-6 text-yellow-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-orange-900">{t('dashboard.notifications')}</CardTitle>
-                    <CardDescription>Send alerts to members</CardDescription>
+                    <CardTitle className="text-yellow-900">Expiring Soon</CardTitle>
+                    <CardDescription>Members due within 7 days</CardDescription>
                   </div>
                 </div>
               </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div> : dashboardStats.dueSoonMembers}
+                </div>
+                <p className="text-sm text-yellow-700">
+                  {loadingStats ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div> : dashboardStats.dueSoonMembers > 0 ? 'Members need renewal' : 'No members expiring soon'}
+                </p>
+              </CardContent>
             </Card>
 
             <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
@@ -734,6 +1095,7 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
             </Card>
+            </div>
           </div>
         ) : (
           /* User Dashboard */
@@ -1046,15 +1408,33 @@ export default function DashboardPage() {
 
                     {/* Payment Details */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      <div className="bg-white p-4 rounded-lg border border-orange-200">
-                        <label className="text-xs font-medium text-orange-700">Total Amount</label>
-                        <p className="text-2xl font-bold text-orange-600">
-                          ₹{memberSubscription.total_amount_due || 0}
-                        </p>
-                      </div>
-                      
+                      {/* For fully paid (success status) */}
+                      {memberSubscription.payment_status === 'success' && (
+                        <>
+                          <div className="bg-white p-4 rounded-lg border border-green-200">
+                            <label className="text-xs font-medium text-green-700">Amount Paid</label>
+                            <p className="text-2xl font-bold text-green-600">
+                              ₹{memberSubscription.total_amount_due || 0}
+                            </p>
+                          </div>
+                          <div className="bg-white p-4 rounded-lg border border-gray-200">
+                            <label className="text-xs font-medium text-gray-700">Total Amount Due</label>
+                            <p className="text-2xl font-bold text-gray-600">
+                              ₹0
+                            </p>
+                          </div>
+                        </>
+                      )}
+
+                      {/* For pending status (advance paid) */}
                       {memberSubscription.payment_status === 'pending' && (
                         <>
+                          <div className="bg-white p-4 rounded-lg border border-orange-200">
+                            <label className="text-xs font-medium text-orange-700">Total Amount</label>
+                            <p className="text-2xl font-bold text-orange-600">
+                              ₹{memberSubscription.total_amount_due || 0}
+                            </p>
+                          </div>
                           <div className="bg-white p-4 rounded-lg border border-purple-200">
                             <label className="text-xs font-medium text-purple-700">Paid Amount</label>
                             <p className="text-2xl font-bold text-purple-600">
@@ -1070,13 +1450,22 @@ export default function DashboardPage() {
                         </>
                       )}
 
+                      {/* For due status (unpaid) */}
                       {memberSubscription.payment_status === 'due' && (
-                        <div className="bg-white p-4 rounded-lg border border-red-200 col-span-2">
-                          <label className="text-xs font-medium text-red-700">Amount Due</label>
-                          <p className="text-3xl font-bold text-red-600">
-                            ₹{memberSubscription.total_amount_due || 0}
-                          </p>
-                        </div>
+                        <>
+                          <div className="bg-white p-4 rounded-lg border border-orange-200">
+                            <label className="text-xs font-medium text-orange-700">Total Amount</label>
+                            <p className="text-2xl font-bold text-orange-600">
+                              ₹{memberSubscription.total_amount_due || 0}
+                            </p>
+                          </div>
+                          <div className="bg-white p-4 rounded-lg border border-red-200">
+                            <label className="text-xs font-medium text-red-700">Amount Due</label>
+                            <p className="text-2xl font-bold text-red-600">
+                              ₹{memberSubscription.total_amount_due || 0}
+                            </p>
+                          </div>
+                        </>
                       )}
                     </div>
 
@@ -1239,7 +1628,14 @@ export default function DashboardPage() {
                               userEmail: userEmail,
                               userName: userName,
                             }),
+                          }).catch(err => {
+                            console.error('Network error during payment:', err);
+                            throw new Error('Network connection failed. Please check your internet connection.');
                           });
+
+                          if (!paymentResponse.ok) {
+                            throw new Error(`Payment API error: ${paymentResponse.status}`);
+                          }
 
                           const paymentData = await paymentResponse.json();
 
@@ -1255,9 +1651,9 @@ export default function DashboardPage() {
                           } else {
                             throw new Error(paymentData.error || 'Failed to create payment');
                           }
-                        } catch (err) {
+                        } catch (err: any) {
                           console.error('Payment initiation error:', err);
-                          alert('Failed to initiate payment. Please try again.');
+                          alert(err?.message || 'Failed to initiate payment. Please try again.');
                         } finally {
                           setProcessing(false);
                         }
@@ -1569,6 +1965,70 @@ export default function DashboardPage() {
                   {addingMember ? 'Adding Member...' : 'Add Member'}
                 </Button>
                 <Button variant="outline" onClick={resetMemberForm} className="w-full sm:w-auto">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Dialog for Manage Members */}
+      {showPasswordDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-orange-900">Access Manage Members</h3>
+              <button 
+                onClick={() => {
+                  setShowPasswordDialog(false);
+                  setEnteredPassword('');
+                  setPasswordError('');
+                }}
+                className="text-orange-600 hover:text-orange-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <p className="text-orange-700 mb-4">Please enter the password to access member management.</p>
+            
+            {passwordError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {passwordError}
+              </div>
+            )}
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-orange-900 mb-2">Password</label>
+                <Input
+                  type="password"
+                  value={enteredPassword}
+                  onChange={(e) => setEnteredPassword(e.target.value)}
+                  onKeyPress={handlePasswordKeyPress}
+                  placeholder="Enter password"
+                  className="border-orange-200 focus:border-orange-400 focus:ring-orange-400"
+                  autoFocus
+                />
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button 
+                  onClick={handlePasswordSubmit}
+                  className="bg-orange-600 hover:bg-orange-700 flex-1"
+                >
+                  Access
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setShowPasswordDialog(false);
+                    setEnteredPassword('');
+                    setPasswordError('');
+                  }}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
               </div>
