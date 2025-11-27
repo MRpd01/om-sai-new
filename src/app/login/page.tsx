@@ -29,30 +29,37 @@ function LoginContent() {
     setError('');
 
     try {
-      // Await sign in without an artificial timeout so real errors surface in UI
+      console.log('🔐 Attempting login...');
+      
+      // Await sign in
       const { error } = await signIn(email, password);
       
-  if (error) {
-        // Handle specific Supabase auth errors
+      if (error) {
+        console.error('Login error:', error);
+        
+        // Handle specific Supabase auth errors with user-friendly messages
         if (error.message === 'Invalid login credentials') {
-          setError('Invalid email or password. Please check your credentials.');
+          setError('❌ Invalid email or password. Please check your credentials.');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Please check your email and click the confirmation link before signing in.');
+          setError('📧 Please check your email and click the confirmation link before signing in.');
         } else if (error.message.includes('Too many requests')) {
-          setError('Too many login attempts. Please try again later.');
+          setError('⏱️ Too many login attempts. Please try again in a few minutes.');
         } else if (error.message.includes('timeout')) {
-          setError('Connection timeout. Please check your internet and try again.');
+          setError('⏱️ Connection timeout. Please check your internet connection and try again.');
+        } else if (error.message.includes('Network error') || error.message.includes('Failed to fetch')) {
+          setError('🌐 Unable to connect to server. Please check your internet connection and try again.');
         } else {
-          setError(error.message || 'Failed to sign in');
+          setError(error.message || 'Failed to sign in. Please try again.');
         }
         setLoading(false);
       } else {
+        console.log('✅ Login successful');
         // Redirect to home (landing) after successful login
         router.push('/');
       }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err: any) {
+      console.error('Unexpected login error:', err);
+      setError('⚠️ An unexpected error occurred. Please try again or contact support.');
       setLoading(false);
     }
   };

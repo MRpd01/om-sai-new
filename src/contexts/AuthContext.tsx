@@ -333,19 +333,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      console.log('supabase.auth.signInWithPassword ->', { data, error });
+      // Retry logic for network failures
+      let lastError: any = null;
+      const maxRetries = 3;
+      
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          console.log(`🔐 Sign in attempt ${attempt + 1}/${maxRetries}...`);
+          
+          const { data, error } = await supabase.auth.signInWithPassword({ 
+            email, 
+            password 
+          });
+          
+          console.log('supabase.auth.signInWithPassword ->', { data, error });
 
-      if (error) throw error;
+          if (error) throw error;
 
-      // Don't wait for profile fetch - let onAuthStateChange handle it
-      return { error: null };
+          // Success - don't wait for profile fetch, let onAuthStateChange handle it
+          console.log('✅ Sign in successful');
+          return { error: null };
+          
+        } catch (err: any) {
+          lastError = err;
+          
+          // Check if it's a retryable error (network/fetch issues)
+          const isRetryable = err?.message && (
+            err.message.toLowerCase().includes('failed to fetch') ||
+            err.message.toLowerCase().includes('network') ||
+            err.message.toLowerCase().includes('timeout') ||
+            err.name === 'TypeError'
+          );
+          
+          // Don't retry for authentication errors (wrong password, etc.)
+          const isAuthError = err?.status === 400 || 
+                             err?.message?.includes('Invalid login credentials') ||
+                             err?.message?.includes('Email not confirmed');
+          
+          if (isAuthError) {
+            console.error('❌ Authentication error (no retry):', err.message);
+            throw err; // Don't retry auth failures
+          }
+          
+          if (!isRetryable || attempt === maxRetries - 1) {
+            console.error(`❌ Sign in failed after ${attempt + 1} attempts:`, err);
+            throw err; // Last attempt or non-retryable error
+          }
+          
+          // Wait before retry with exponential backoff
+          const waitTime = Math.min(1000 * Math.pow(2, attempt), 3000); // Max 3s
+          console.warn(`⚠️ Network error, retrying in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
+      
+      throw lastError; // Should never reach here, but just in case
+      
     } catch (err: any) {
       console.error('Sign in error:', err);
       
       // Normalize timeout errors
       if (err?.message && err.message.toLowerCase().includes('timeout')) {
-        return { error: { message: 'Authentication timeout. Please check your connection and try again.' } as AuthError };
+        return { error: { message: '⏱️ Authentication timeout. Please check your connection and try again.' } as AuthError };
       }
       
       // Handle invalid refresh token
@@ -355,12 +404,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (signOutErr) {
           console.error('Error signing out after invalid refresh token:', signOutErr);
         }
-        return { error: { message: 'Session expired. Please sign in again.' } as AuthError };
+        return { error: { message: '🔒 Session expired. Please sign in again.' } as AuthError };
       }
       
       // Handle network errors
       if (err?.message && (err.message.toLowerCase().includes('failed to fetch') || err.message.toLowerCase().includes('network'))) {
-        return { error: { message: 'Network error. Please check your internet connection.' } as AuthError };
+        return { error: { message: '🌐 Network error. Please check your internet connection and try again.' } as AuthError };
+      }
+      
+      // Handle invalid credentials
+      if (err?.message && err.message.includes('Invalid login credentials')) {
+        return { error: { message: '❌ Invalid email or password. Please try again.' } as AuthError };
       }
       
       return { error: err as AuthError };

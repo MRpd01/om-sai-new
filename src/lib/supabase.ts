@@ -80,11 +80,57 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce'
   },
   global: {
     headers: {
-      'Connection': 'keep-alive'
+      'Connection': 'keep-alive',
+      'Cache-Control': 'no-cache'
+    },
+    fetch: async (url, options = {}) => {
+      const maxRetries = 2;
+      let lastError: Error | null = null;
+      
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+          
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          return response;
+          
+        } catch (error: any) {
+          lastError = error;
+          
+          // Don't retry on abort or if it's the last attempt
+          if (error.name === 'AbortError' || attempt === maxRetries - 1) {
+            if (attempt === maxRetries - 1) {
+              console.error('❌ Supabase request failed after retries:', {
+                url: typeof url === 'string' ? url : 'Request',
+                error: error?.message || String(error)
+              });
+            }
+            throw error;
+          }
+          
+          // Only retry on network errors
+          if (error.name === 'TypeError' || error.message?.includes('fetch')) {
+            const waitTime = 500 * (attempt + 1); // 500ms, 1000ms
+            console.warn(`🔄 Retrying request in ${waitTime}ms...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          } else {
+            throw error;
+          }
+        }
+      }
+      
+      throw lastError || new Error('Request failed');
     }
   },
   db: {
@@ -97,11 +143,48 @@ export function createSupabaseBrowserClient() {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      flowType: 'pkce'
     },
     global: {
       headers: {
-        'Connection': 'keep-alive'
+        'Connection': 'keep-alive',
+        'Cache-Control': 'no-cache'
+      },
+      fetch: async (url, options = {}) => {
+        const maxRetries = 2;
+        let lastError: Error | null = null;
+        
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            
+            const response = await fetch(url, {
+              ...options,
+              signal: controller.signal,
+            });
+            
+            clearTimeout(timeoutId);
+            return response;
+            
+          } catch (error: any) {
+            lastError = error;
+            
+            if (error.name === 'AbortError' || attempt === maxRetries - 1) {
+              throw error;
+            }
+            
+            if (error.name === 'TypeError' || error.message?.includes('fetch')) {
+              const waitTime = 500 * (attempt + 1);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+            } else {
+              throw error;
+            }
+          }
+        }
+        
+        throw lastError || new Error('Request failed');
       }
     }
   });

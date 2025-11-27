@@ -828,16 +828,16 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
-        <div className="mb-8">
+        <div className="mb-4 sm:mb-6 md:mb-8">
           <Card className="border-orange-200 bg-gradient-to-r from-orange-500 to-amber-500 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-white/20 rounded-full">
-                  <User className="h-8 w-8" />
+            <CardContent className="p-4 sm:p-5 md:p-6">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="p-2 sm:p-3 bg-white/20 rounded-full flex-shrink-0">
+                  <User className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold">{t('dashboard.welcome')}!</h2>
-                  <p className="text-orange-100">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold truncate">{t('dashboard.welcome')}!</h2>
+                  <p className="text-orange-100 text-xs sm:text-sm truncate">
                     {user.email} • {userRole === 'admin' ? 'Manage Members' : t('dashboard.members')}
                   </p>
                 </div>
@@ -847,33 +847,33 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions Section */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-orange-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <h3 className="text-base sm:text-lg font-semibold text-orange-900 mb-3 sm:mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
             <button 
               onClick={() => {
                 const paymentSection = document.getElementById('payment-section');
                 paymentSection?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="bg-orange-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center space-x-2 min-h-[48px]"
+              className="bg-orange-600 text-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2"
             >
-              <CreditCard className="h-4 w-4 flex-shrink-0" />
-              <span className="text-sm sm:text-base">Pay Now</span>
+              <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base">Pay Now</span>
             </button>
             <button 
               onClick={() => window.location.href = '/menu'}
-              className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2 min-h-[48px]"
+              className="bg-white text-orange-600 border border-orange-300 px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2"
             >
-              <Calendar className="h-4 w-4 flex-shrink-0" />
-              <span className="text-sm sm:text-base">View Menu</span>
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base">View Menu</span>
             </button>
-            <button className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2 min-h-[48px]">
-              <User className="h-4 w-4 flex-shrink-0" />
-              <span className="text-sm sm:text-base">Update Profile</span>
+            <button className="bg-white text-orange-600 border border-orange-300 px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2">
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base">Profile</span>
             </button>
-            <button className="bg-white text-orange-600 border border-orange-300 px-4 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-2 min-h-[48px]">
-              <Bell className="h-4 w-4 flex-shrink-0" />
-              <span className="text-sm sm:text-base">Contact Admin</span>
+            <button className="bg-white text-orange-600 border border-orange-300 px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2">
+              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base">Contact</span>
             </button>
           </div>
         </div>
@@ -883,20 +883,20 @@ export default function DashboardPage() {
           /* Admin Dashboard */
           <div className="space-y-6">
             {/* Member Statistics Cards - Responsive Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
               {/* 1. All Members - Highest Priority (Most Used) */}
               <Link href="/members" className="w-full">
-                <Card className="h-full border-blue-200 cursor-pointer hover:shadow-lg hover:border-blue-400 transition-all duration-300 hover:scale-105">
-                  <CardContent className="p-6">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                        <Users className="h-6 w-6 text-blue-600" />
+                <Card className="h-full border-blue-200 cursor-pointer hover:shadow-lg hover:border-blue-400 transition-all duration-200 hover:scale-105">
+                  <CardContent className="p-3 sm:p-4 md:p-5">
+                    <div className="flex flex-col sm:flex-row items-center sm:space-x-2 md:space-x-3">
+                      <div className="p-2 sm:p-2.5 md:p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors mb-2 sm:mb-0">
+                        <Users className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-600" />
                       </div>
-                      <div className="flex-1">
-                        <p className="text-3xl font-bold text-blue-600">
-                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div> : dashboardStats.totalMembers}
-                        </p>
-                        <p className="text-sm text-blue-700 font-medium">All Members</p>
+                      <div className="flex-1 text-center sm:text-left">
+                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 border-b-2 border-blue-600 mx-auto sm:mx-0"></div> : dashboardStats.totalMembers}
+                        </div>
+                        <p className="text-xs sm:text-sm text-blue-700 font-medium">All Members</p>
                       </div>
                     </div>
                   </CardContent>
@@ -905,17 +905,17 @@ export default function DashboardPage() {
 
               {/* 2. Active Members - High Priority */}
               <Link href="/members?status=active" className="w-full">
-                <Card className="h-full border-green-200 cursor-pointer hover:shadow-lg hover:border-green-400 transition-all duration-300 hover:scale-105">
-                  <CardContent className="p-6">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-3 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
-                        <Users className="h-6 w-6 text-green-600" />
+                <Card className="h-full border-green-200 cursor-pointer hover:shadow-lg hover:border-green-400 transition-all duration-200 hover:scale-105">
+                  <CardContent className="p-3 sm:p-4 md:p-5">
+                    <div className="flex flex-col sm:flex-row items-center sm:space-x-2 md:space-x-3">
+                      <div className="p-2 sm:p-2.5 md:p-3 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors mb-2 sm:mb-0">
+                        <Users className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-green-600" />
                       </div>
-                      <div className="flex-1">
-                        <p className="text-3xl font-bold text-green-600">
-                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div> : dashboardStats.activeMembers}
-                        </p>
-                        <p className="text-sm text-green-700 font-medium">Active Members</p>
+                      <div className="flex-1 text-center sm:text-left">
+                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 border-b-2 border-green-600 mx-auto sm:mx-0"></div> : dashboardStats.activeMembers}
+                        </div>
+                        <p className="text-xs sm:text-sm text-green-700 font-medium">Active</p>
                       </div>
                     </div>
                   </CardContent>
@@ -924,17 +924,17 @@ export default function DashboardPage() {
 
               {/* 3. Pending Members - Medium Priority */}
               <Link href="/members?status=pending" className="w-full">
-                <Card className="h-full border-purple-200 cursor-pointer hover:shadow-lg hover:border-purple-400 transition-all duration-300 hover:scale-105">
-                  <CardContent className="p-6">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                        <Calendar className="h-6 w-6 text-purple-600" />
+                <Card className="h-full border-purple-200 cursor-pointer hover:shadow-lg hover:border-purple-400 transition-all duration-200 hover:scale-105">
+                  <CardContent className="p-3 sm:p-4 md:p-5">
+                    <div className="flex flex-col sm:flex-row items-center sm:space-x-2 md:space-x-3">
+                      <div className="p-2 sm:p-2.5 md:p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors mb-2 sm:mb-0">
+                        <Calendar className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-purple-600" />
                       </div>
-                      <div className="flex-1">
-                        <p className="text-3xl font-bold text-purple-600">
-                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div> : dashboardStats.partiallyActiveMembers}
-                        </p>
-                        <p className="text-sm text-purple-700 font-medium">Pending</p>
+                      <div className="flex-1 text-center sm:text-left">
+                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 border-b-2 border-purple-600 mx-auto sm:mx-0"></div> : dashboardStats.partiallyActiveMembers}
+                        </div>
+                        <p className="text-xs sm:text-sm text-purple-700 font-medium">Pending</p>
                       </div>
                     </div>
                   </CardContent>
@@ -943,17 +943,17 @@ export default function DashboardPage() {
 
               {/* 4. Inactive Members - Medium Priority */}
               <Link href="/members?status=inactive" className="w-full">
-                <Card className="h-full border-red-200 cursor-pointer hover:shadow-lg hover:border-red-400 transition-all duration-300 hover:scale-105">
-                  <CardContent className="p-6">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-3 bg-red-100 rounded-lg group-hover:bg-red-200 transition-colors">
-                        <Users className="h-6 w-6 text-red-600" />
+                <Card className="h-full border-red-200 cursor-pointer hover:shadow-lg hover:border-red-400 transition-all duration-200 hover:scale-105">
+                  <CardContent className="p-3 sm:p-4 md:p-5">
+                    <div className="flex flex-col sm:flex-row items-center sm:space-x-2 md:space-x-3">
+                      <div className="p-2 sm:p-2.5 md:p-3 bg-red-100 rounded-lg group-hover:bg-red-200 transition-colors mb-2 sm:mb-0">
+                        <Users className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-red-600" />
                       </div>
-                      <div className="flex-1">
-                        <p className="text-3xl font-bold text-red-600">
-                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div> : dashboardStats.inactiveMembers}
-                        </p>
-                        <p className="text-sm text-red-700 font-medium">Inactive</p>
+                      <div className="flex-1 text-center sm:text-left">
+                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 border-b-2 border-red-600 mx-auto sm:mx-0"></div> : dashboardStats.inactiveMembers}
+                        </div>
+                        <p className="text-xs sm:text-sm text-red-700 font-medium">Inactive</p>
                       </div>
                     </div>
                   </CardContent>
@@ -962,22 +962,22 @@ export default function DashboardPage() {
 
               {/* 5. Manage Members - Lower Priority (Password Protected) */}
               <div onClick={isOwner ? handleManageMembersClick : undefined} className="w-full">
-                <Card className={`h-full transition-all duration-300 border-orange-200 ${
+                <Card className={`h-full transition-all duration-200 border-orange-200 ${
                   isOwner 
                     ? 'group hover:shadow-lg hover:border-orange-400 cursor-pointer' 
                     : 'opacity-70 cursor-not-allowed'
                 }`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-3 bg-orange-100 rounded-lg ${isOwner ? 'group-hover:bg-orange-200' : ''} transition-colors`}>
-                        <Lock className="h-6 w-6 text-orange-600" />
+                  <CardContent className="p-3 sm:p-4 md:p-5">
+                    <div className="flex flex-col sm:flex-row items-center sm:space-x-2 md:space-x-3">
+                      <div className={`p-2 sm:p-2.5 md:p-3 bg-orange-100 rounded-lg ${isOwner ? 'group-hover:bg-orange-200' : ''} transition-colors mb-2 sm:mb-0`}>
+                        <Lock className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-600" />
                       </div>
-                      <div className="flex-1">
-                        <p className="text-3xl font-bold text-orange-600">
-                          {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div> : dashboardStats.totalMembers}
-                        </p>
-                        <p className="text-sm text-orange-700 font-medium">
-                          Manage {isSubAdmin && '(View Only)'}
+                      <div className="flex-1 text-center sm:text-left">
+                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-orange-600">
+                          {loadingStats ? <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 border-b-2 border-orange-600 mx-auto sm:mx-0"></div> : dashboardStats.totalMembers}
+                        </div>
+                        <p className="text-xs sm:text-sm text-orange-700 font-medium">
+                          Manage {isSubAdmin && '(View)'}
                         </p>
                       </div>
                     </div>
@@ -987,25 +987,25 @@ export default function DashboardPage() {
             </div>
 
             {/* Other Admin Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <CreditCard className="h-6 w-6 text-orange-600" />
+            <Card className="group hover:shadow-lg transition-all duration-200 border-orange-200 hover:border-orange-400 cursor-pointer">
+              <CardHeader className="pb-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
+                    <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-orange-900">{t('dashboard.payments')}</CardTitle>
-                    <CardDescription>Track payment collections</CardDescription>
+                    <CardTitle className="text-orange-900 text-sm sm:text-base">{t('dashboard.payments')}</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Track payment collections</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
-                  {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div> : `₹${dashboardStats.totalPaymentsThisMonth.toLocaleString('en-IN')}`}
+              <CardContent className="pt-0">
+                <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                  {loadingStats ? <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 border-b-2 border-orange-600"></div> : `₹${dashboardStats.totalPaymentsThisMonth.toLocaleString('en-IN')}`}
                 </div>
-                <p className="text-sm text-orange-700">This Month</p>
+                <p className="text-xs sm:text-sm text-orange-700">This Month</p>
                 {!loadingStats && dashboardStats.totalPaymentsAllTime > 0 && (
                   <p className="text-xs text-orange-500 mt-1">
                     Total: ₹{dashboardStats.totalPaymentsAllTime.toLocaleString('en-IN')}
@@ -1015,82 +1015,82 @@ export default function DashboardPage() {
             </Card>
 
             <Link href="/manage-admins">
-              <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
-                      <Users className="h-6 w-6 text-orange-600" />
+              <Card className="group hover:shadow-lg transition-all duration-200 border-orange-200 hover:border-orange-400 cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+                      <Users className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-orange-900 group-hover:text-orange-700 transition-colors">Manage Admins</CardTitle>
-                      <CardDescription>Add or remove admin access</CardDescription>
+                      <CardTitle className="text-orange-900 group-hover:text-orange-700 transition-colors text-sm sm:text-base">Manage Admins</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">Add or remove admin access</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">
-                    {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div> : dashboardStats.activeAdmins}
+                <CardContent className="pt-0">
+                  <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                    {loadingStats ? <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 border-b-2 border-orange-600"></div> : dashboardStats.activeAdmins}
                   </div>
-                  <p className="text-sm text-orange-700">Active Admins</p>
+                  <p className="text-xs sm:text-sm text-orange-700">Active Admins</p>
                 </CardContent>
               </Card>
             </Link>
 
             <Link href="/subscription-requests">
-              <Card className="group hover:shadow-lg transition-all duration-300 border-blue-200 hover:border-blue-400 cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                      <Bell className="h-6 w-6 text-blue-600" />
+              <Card className="group hover:shadow-lg transition-all duration-200 border-blue-200 hover:border-blue-400 cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                      <Bell className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-blue-900 group-hover:text-blue-700 transition-colors">Subscription Requests</CardTitle>
-                      <CardDescription>Approve member subscription requests</CardDescription>
+                      <CardTitle className="text-blue-900 group-hover:text-blue-700 transition-colors text-sm sm:text-base">Requests</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">Approve subscriptions</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div> : dashboardStats.pendingRequests > 0 ? `${dashboardStats.pendingRequests} 🔔` : '✓'}
+                <CardContent className="pt-0">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600">
+                    {loadingStats ? <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 border-b-2 border-blue-600"></div> : dashboardStats.pendingRequests > 0 ? `${dashboardStats.pendingRequests} 🔔` : '✓'}
                   </div>
-                  <p className="text-sm text-blue-700">
-                    {loadingStats ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div> : dashboardStats.pendingRequests > 0 ? `${dashboardStats.pendingRequests} Pending Request${dashboardStats.pendingRequests > 1 ? 's' : ''}` : 'No Pending Requests'}
-                  </p>
+                  <div className="text-xs sm:text-sm text-blue-700">
+                    {loadingStats ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div> : dashboardStats.pendingRequests > 0 ? `${dashboardStats.pendingRequests} Pending` : 'No Requests'}
+                  </div>
                 </CardContent>
               </Card>
             </Link>
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border-yellow-200 hover:border-yellow-400 cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-yellow-100 rounded-lg">
-                    <Calendar className="h-6 w-6 text-yellow-600" />
+            <Card className="group hover:shadow-lg transition-all duration-200 border-yellow-200 hover:border-yellow-400 cursor-pointer">
+              <CardHeader className="pb-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
+                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-yellow-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-yellow-900">Expiring Soon</CardTitle>
-                    <CardDescription>Members due within 7 days</CardDescription>
+                    <CardTitle className="text-yellow-900 text-sm sm:text-base">Expiring Soon</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Due within 7 days</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">
-                  {loadingStats ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div> : dashboardStats.dueSoonMembers}
+              <CardContent className="pt-0">
+                <div className="text-xl sm:text-2xl font-bold text-yellow-600">
+                  {loadingStats ? <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 border-b-2 border-yellow-600"></div> : dashboardStats.dueSoonMembers}
                 </div>
-                <p className="text-sm text-yellow-700">
-                  {loadingStats ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div> : dashboardStats.dueSoonMembers > 0 ? 'Members need renewal' : 'No members expiring soon'}
-                </p>
+                <div className="text-xs sm:text-sm text-yellow-700">
+                  {loadingStats ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div> : dashboardStats.dueSoonMembers > 0 ? 'Need renewal' : 'None expiring'}
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <CreditCard className="h-6 w-6 text-orange-600" />
+            <Card className="group hover:shadow-lg transition-all duration-200 border-orange-200 hover:border-orange-400 cursor-pointer">
+              <CardHeader className="pb-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
+                    <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-orange-900">Reports</CardTitle>
-                    <CardDescription>View analytics and reports</CardDescription>
+                    <CardTitle className="text-orange-900 text-sm sm:text-base">Reports</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">View analytics</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -1099,7 +1099,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           /* User Dashboard */
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
             {/* Payment Status Card - shows subscription form for first-time users OR current subscription */}
             <Card id="payment-section" className="border-orange-200 lg:col-span-2">
               <CardHeader>
@@ -1673,64 +1673,64 @@ export default function DashboardPage() {
             )}
 
             <Link href="/menu">
-              <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
-                      <Calendar className="h-6 w-6 text-orange-600" />
+              <Card className="group hover:shadow-lg transition-all duration-200 border-orange-200 hover:border-orange-400 cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-orange-900 group-hover:text-orange-700 transition-colors">Today&apos;s Menu</CardTitle>
-                      <CardDescription>Check what&apos;s cooking today</CardDescription>
+                      <CardTitle className="text-orange-900 group-hover:text-orange-700 transition-colors text-sm sm:text-base">Today&apos;s Menu</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">Check what&apos;s cooking today</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p className="text-sm"><strong>Lunch:</strong> Dal Rice, Sabzi</p>
-                    <p className="text-sm"><strong>Dinner:</strong> Roti, Curry</p>
+                <CardContent className="pt-0">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <p className="text-xs sm:text-sm"><strong>Lunch:</strong> Dal Rice, Sabzi</p>
+                    <p className="text-xs sm:text-sm"><strong>Dinner:</strong> Roti, Curry</p>
                   </div>
                 </CardContent>
               </Card>
             </Link>
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <User className="h-6 w-6 text-orange-600" />
+            <Card className="group hover:shadow-lg transition-all duration-200 border-orange-200 hover:border-orange-400 cursor-pointer">
+              <CardHeader className="pb-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-orange-900">My Profile</CardTitle>
-                    <CardDescription>Update your information</CardDescription>
+                    <CardTitle className="text-orange-900 text-sm sm:text-base">My Profile</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Update your information</CardDescription>
                   </div>
                 </div>
               </CardHeader>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <CreditCard className="h-6 w-6 text-orange-600" />
+            <Card className="group hover:shadow-lg transition-all duration-200 border-orange-200 hover:border-orange-400 cursor-pointer">
+              <CardHeader className="pb-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
+                    <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-orange-900">Make Payment</CardTitle>
-                    <CardDescription>Pay for your mess plan</CardDescription>
+                    <CardTitle className="text-orange-900 text-sm sm:text-base">Make Payment</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Pay for your mess plan</CardDescription>
                   </div>
                 </div>
               </CardHeader>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border-orange-200 hover:border-orange-400 cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Bell className="h-6 w-6 text-orange-600" />
+            <Card className="group hover:shadow-lg transition-all duration-200 border-orange-200 hover:border-orange-400 cursor-pointer">
+              <CardHeader className="pb-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
+                    <Bell className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-orange-900">Notifications</CardTitle>
-                    <CardDescription>View important updates</CardDescription>
+                    <CardTitle className="text-orange-900 text-sm sm:text-base">Notifications</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">View important updates</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -1740,31 +1740,31 @@ export default function DashboardPage() {
         )}
 
         {/* Quick Actions */}
-        <div className="mt-12">
-          <h3 className="text-lg font-semibold text-orange-900 mb-4">Quick Actions</h3>
-          <div className="flex flex-wrap gap-3">
+        <div className="mt-6 sm:mt-8 md:mt-10">
+          <h3 className="text-base sm:text-lg font-semibold text-orange-900 mb-3 sm:mb-4">Quick Actions</h3>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {userRole === 'admin' ? (
               <>
                 <Link href="/members">
-                  <Button className="bg-orange-600 hover:bg-orange-700">Add New Member</Button>
+                  <Button className="bg-orange-600 hover:bg-orange-700 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">Add New Member</Button>
                 </Link>
                 <Link href="/manage-admins">
-                  <Button variant="outline" className="border-orange-200 text-orange-600">Manage Admins</Button>
+                  <Button variant="outline" className="border-orange-200 text-orange-600 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">Manage Admins</Button>
                 </Link>
-                <Button variant="outline" className="border-orange-200 text-orange-600">Send Notification</Button>
+                <Button variant="outline" className="border-orange-200 text-orange-600 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">Send Notification</Button>
                 <Link href="/menu">
-                  <Button variant="outline" className="border-orange-200 text-orange-600">Update Menu</Button>
+                  <Button variant="outline" className="border-orange-200 text-orange-600 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">Update Menu</Button>
                 </Link>
-                <Button variant="outline" className="border-orange-200 text-orange-600">View Reports</Button>
+                <Button variant="outline" className="border-orange-200 text-orange-600 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">View Reports</Button>
               </>
             ) : (
               <>
-                <Button className="bg-orange-600 hover:bg-orange-700">Pay Now</Button>
+                <Button className="bg-orange-600 hover:bg-orange-700 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">Pay Now</Button>
                 <Link href="/menu">
-                  <Button variant="outline" className="border-orange-200 text-orange-600">View Menu</Button>
+                  <Button variant="outline" className="border-orange-200 text-orange-600 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">View Menu</Button>
                 </Link>
-                <Button variant="outline" className="border-orange-200 text-orange-600">Update Profile</Button>
-                <Button variant="outline" className="border-orange-200 text-orange-600">Contact Admin</Button>
+                <Button variant="outline" className="border-orange-200 text-orange-600 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">Update Profile</Button>
+                <Button variant="outline" className="border-orange-200 text-orange-600 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">Contact Admin</Button>
               </>
             )}
           </div>
